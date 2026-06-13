@@ -2,6 +2,27 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — 翻译审校包与 state 回写
+
+### 已完成
+
+- 新增 `limbus_translate/review.py`，可从候选输出和 QA issue 生成 translation review pack。
+- 新增 `review pack` CLI，输出 `review.csv` 和 `review.jsonl`，包含源文、原目标文、候选译文、QA severity/code/message、risk 和定位字段。
+- 新增 `review apply` CLI，只接收明确 approved 且有译文的行，写为 `reviewed` / `locked` state；支持 `--merge` 合并既有 state。
+- `workflow run` 自动生成 `translation-review/`，并在 `summary.json` 中写入 `translation_review` 与 artifact 路径。
+- `make smoke` 已接入 translation review pack、模拟 approved review 和 reviewed state schema 检查。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖 QA issue 写入 review pack、approved CSV 回写 reviewed state。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，fixture 生成 `build/translation-review/review.csv`、`review.jsonl` 和 `build/reviewed-state.json`；workflow summary 包含 translation review artifact。
+- 真实 Localize checkout：全量扫描 + `--limit 1` workflow 生成 1 条 translation review；模拟 approve 后回写 1 条 reviewed state。
+
+### 风险
+
+- review pack 解决的是审校载体和 state 回写，不代表 dry-run 候选可发布；正式译文仍需要 reviewer 填写或确认 `revised_target`。
+
 ## 2026-06-13 — Workflow run 术语增量闭环
 
 ### 已完成

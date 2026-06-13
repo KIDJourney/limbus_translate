@@ -32,6 +32,13 @@ from .lore import (
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
+from .review import (
+    apply_translation_review_csv,
+    merge_state_rows,
+    read_qa_issues,
+    read_state_rows,
+    write_translation_review_pack,
+)
 from .scanner import TranslationUnit, read_changed_files, read_scan_policy, scan_missing, write_units
 from .state import UnitState, read_state, write_state
 from .terms import (
@@ -206,6 +213,12 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     qa_path = work_dir / "qa-report.json"
     write_issues(qa_path, issues)
     qa_summary = summarize_issues(issues)
+    translation_review_summary = write_translation_review_pack(
+        work_dir / "translation-review",
+        units=qa_units,
+        output_root=output,
+        issues=issues,
+    )
 
     by_reason: dict[str, int] = {}
     for unit in units:
@@ -217,6 +230,7 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "by_reason": dict(sorted(by_reason.items())),
         "qa": qa_summary,
         "terms": terms_summary,
+        "translation_review": translation_review_summary,
         "artifacts": {
             "units": str(units_path),
             "tm": str(tm_path),
@@ -225,6 +239,8 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
             "term_review_csv": str(term_review_summary.get("review_csv", "")),
             "term_review_jsonl": str(term_review_summary.get("review_jsonl", "")),
             "term_review_paratranz_csv": str(term_review_summary.get("paratranz_csv", "")),
+            "translation_review_csv": str(translation_review_summary.get("review_csv", "")),
+            "translation_review_jsonl": str(translation_review_summary.get("review_jsonl", "")),
             "lore": str(lore_path) if lore_path else "",
             "lore_index": str(lore_index_path) if lore_index_path else "",
             "output": str(output),
@@ -285,6 +301,32 @@ def cmd_qa(args: argparse.Namespace) -> int:
     print(f"qa complete: {len(issues)} issues -> {args.report}")
     print(json.dumps(summarize_issues(issues), ensure_ascii=False, sort_keys=True))
     return 1 if any(issue.severity == "error" for issue in issues) and args.fail_on_error else 0
+
+
+def cmd_review_pack(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    issues = read_qa_issues(Path(args.qa_report)) if args.qa_report else []
+    summary = write_translation_review_pack(
+        Path(args.output_dir),
+        units=units,
+        output_root=Path(args.output_root),
+        issues=issues,
+    )
+    print(f"review pack complete: {summary['selected']} units -> {args.output_dir}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def cmd_review_apply(args: argparse.Namespace) -> int:
+    reviewed = apply_translation_review_csv(Path(args.review), status=args.status)
+    existing = read_state_rows(Path(args.merge)) if args.merge else []
+    states = merge_state_rows(existing, reviewed) if existing else reviewed
+    write_state(Path(args.output), states)
+    print(f"review apply complete: {len(reviewed)} approved units -> {args.output}")
+    if args.merge:
+        print(f"merged with existing state: {len(existing)} rows")
+    return 0
 
 
 def cmd_terms_extract(args: argparse.Namespace) -> int:
@@ -566,6 +608,21 @@ def build_parser() -> argparse.ArgumentParser:
     qa.add_argument("--length-policy", default="")
     qa.add_argument("--fail-on-error", action="store_true")
     qa.set_defaults(func=cmd_qa)
+
+    review = sub.add_parser("review", help="Export and apply human translation review packs.")
+    review_sub = review.add_subparsers(required=True)
+    review_pack = review_sub.add_parser("pack")
+    review_pack.add_argument("--units", default="build/missing-units.json")
+    review_pack.add_argument("--output-root", default="build/LLC_zh-CN")
+    review_pack.add_argument("--qa-report", default="build/qa-report.json")
+    review_pack.add_argument("--output-dir", default="build/translation-review")
+    review_pack.set_defaults(func=cmd_review_pack)
+    review_apply = review_sub.add_parser("apply")
+    review_apply.add_argument("--review", default="build/translation-review/review.csv")
+    review_apply.add_argument("--output", default="cache/state/reviewed.json")
+    review_apply.add_argument("--merge", default="", help="Optional existing state JSON to merge before writing.")
+    review_apply.add_argument("--status", choices=["reviewed", "locked"], default="reviewed")
+    review_apply.set_defaults(func=cmd_review_apply)
 
     evaluation = sub.add_parser("eval", help="Run provider regression on a gold translation set.")
     eval_sub = evaluation.add_subparsers(required=True)
