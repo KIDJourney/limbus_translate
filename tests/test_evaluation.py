@@ -1,8 +1,36 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from limbus_translate.evaluation import read_gold_cases, run_gold_evaluation, summarize_eval, write_eval_report
+from limbus_translate.evaluation import (
+    build_gold_cases,
+    read_gold_cases,
+    run_gold_evaluation,
+    summarize_eval,
+    write_eval_report,
+    write_gold_cases,
+)
+from limbus_translate.glossary import GlossaryTerm
 from limbus_translate.providers import TranslationRequest
+
+
+def make_term(source: str, target: str) -> GlossaryTerm:
+    return GlossaryTerm(
+        provider="test",
+        project_id=None,
+        term_id=None,
+        source_lang="ko",
+        target_lang="zh-cn",
+        source=source,
+        target=target,
+        note="approved",
+        part_of_speech="noun",
+        variants=[],
+        case_sensitive=False,
+        created_at=None,
+        updated_at=None,
+        raw={},
+        fetched_at="2026-06-13T00:00:00Z",
+    )
 
 
 class GoldProvider:
@@ -54,3 +82,33 @@ def test_eval_report_roundtrip() -> None:
 
     assert '"summary"' in text
     assert '"results"' in text
+
+
+def test_build_gold_cases_from_reference_tree() -> None:
+    cases = build_gold_cases(
+        source_root=Path("tests/fixtures/localize/KR"),
+        target_root=Path("tests/fixtures/localize/LLC_zh-CN"),
+        glossary=[make_term("단테", "但丁")],
+    )
+
+    by_source = {case.source_text: case for case in cases}
+    assert by_source["단테"].expected_text == "但丁"
+    assert by_source["단테"].glossary[0].target == "但丁"
+    assert by_source["단테"].context["relative_file"] == "Sample.json"
+    assert "name" in by_source["단테"].tags
+    assert "안아준다." in by_source
+    assert "사용 안하는 텍스트" not in by_source
+
+
+def test_write_gold_cases_roundtrip() -> None:
+    cases = build_gold_cases(
+        source_root=Path("tests/fixtures/localize/KR"),
+        target_root=Path("tests/fixtures/localize/LLC_zh-CN"),
+        limit=1,
+    )
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "gold.json"
+        write_gold_cases(path, cases)
+        loaded = read_gold_cases(path)
+
+    assert loaded == cases

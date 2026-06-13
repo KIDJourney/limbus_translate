@@ -36,7 +36,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 部分完成，需继续细化 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查和 MQM 风格分类 | 已完成初版；路径/risk 字符级 length policy 已完成，像素级 UI 长度未完成 |
-| Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成 eval report 初版；真实 500-1000 条 gold set 和多模型赛马未完成 |
+| Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成从参考译文构建 gold set 和 eval report 初版；人工精选 gold set 和多模型赛马未完成 |
 | 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM、基础 fuzzy TM 和轻量 lore cache 已完成；向量检索和 gold set 调参未完成 |
 
 ## 当前不做

@@ -5,7 +5,14 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from .evaluation import read_gold_cases, run_gold_evaluation, summarize_eval, write_eval_report
+from .evaluation import (
+    build_gold_cases,
+    read_gold_cases,
+    run_gold_evaluation,
+    summarize_eval,
+    write_eval_report,
+    write_gold_cases,
+)
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
 from .lore import import_lore, read_lore_cache, write_lore_cache
 from .memory import build_memory, read_memory, write_memory
@@ -165,6 +172,26 @@ def cmd_eval_run(args: argparse.Namespace) -> int:
     return 1 if summary["pass_rate"] < args.fail_under else 0
 
 
+def cmd_eval_build_gold(args: argparse.Namespace) -> int:
+    glossary = read_cache(Path(args.glossary)) if args.glossary else []
+    cases = build_gold_cases(
+        source_root=Path(args.source),
+        target_root=Path(args.target),
+        glossary=glossary,
+        limit=args.limit,
+        min_source_length=args.min_source_length,
+        max_source_length=args.max_source_length,
+    )
+    write_gold_cases(Path(args.output), cases)
+    by_tag: dict[str, int] = {}
+    for case in cases:
+        for tag in case.tags:
+            by_tag[tag] = by_tag.get(tag, 0) + 1
+    print(f"gold build complete: {len(cases)} cases -> {args.output}")
+    print(json.dumps({"by_tag": by_tag, "total": len(cases)}, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="limbus-translate")
     sub = parser.add_subparsers(required=True)
@@ -234,6 +261,15 @@ def build_parser() -> argparse.ArgumentParser:
     eval_run.add_argument("--min-similarity", type=float, default=0.75)
     eval_run.add_argument("--fail-under", type=float, default=0.0, help="Fail if pass_rate is below this value.")
     eval_run.set_defaults(func=cmd_eval_run)
+    eval_build = eval_sub.add_parser("build-gold")
+    eval_build.add_argument("--source", required=True)
+    eval_build.add_argument("--target", required=True)
+    eval_build.add_argument("--glossary", default="")
+    eval_build.add_argument("--output", default="cache/eval/gold-set.json")
+    eval_build.add_argument("--limit", type=int, default=None)
+    eval_build.add_argument("--min-source-length", type=int, default=2)
+    eval_build.add_argument("--max-source-length", type=int, default=500)
+    eval_build.set_defaults(func=cmd_eval_build_gold)
 
     terms = sub.add_parser("terms", help="Extract and cache candidate glossary terms.")
     terms_sub = terms.add_subparsers(required=True)

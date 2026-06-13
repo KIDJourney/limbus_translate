@@ -55,8 +55,15 @@ python3 -m limbus_translate.cli qa \
   --report build/qa-report.json \
   --length-policy config/length-policy.sample.json
 
+python3 -m limbus_translate.cli eval build-gold \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --glossary cache/glossary/paratranz-6860.json \
+  --output cache/eval/gold-set.json \
+  --limit 1000
+
 python3 -m limbus_translate.cli eval run \
-  --gold tests/fixtures/gold-set.json \
+  --gold cache/eval/gold-set.json \
   --provider dry-run \
   --report build/eval-report.json
 
@@ -84,7 +91,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；当前是关键词召回，不是向量检索。
 
-`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`--fail-under` 可作为 CI 门禁；当前 fixture 只用于链路验证，不代表真实模型质量。
+`eval build-gold` 从已有 `KR` / `LLC_zh-CN` 参考译文中抽取 gold set，跳过空译文、同源残留和仍含韩文的目标文本；可用 `--limit` 控制规模。`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`--fail-under` 可作为 CI 门禁；自动抽取的 gold set 仍需要人工抽查和分层采样，不代表最终模型质量。
 
 ## 文档验证
 
