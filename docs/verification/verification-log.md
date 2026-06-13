@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-14 | Refined term cache 跨更新复用 | 新增 `refine_candidates_with_cache` / `merge_refined_term_cache`；`terms refine --cache` 和 `workflow run --terms-cache` 可复用持久 refined term cache，命中 source 不再调用 refiner，并在 summary 记录 existing、reused、added 和 total | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；真实 Localize checkout workflow 双跑 `--limit 1 --terms-cache` | 通过；直接测试覆盖缓存命中只把未命中候选传给 refiner、命中项刷新本轮 contexts/count；fixture smoke 生成 `build/refined-terms-cache.json` 和 `build/workflow/refined-terms-cache.json`，workflow summary 包含 `terms.cache.added=3 total=3`；真实 checkout 首跑 `added=19 reused=0`，复跑同一 cache `existing=19 reused=19 added=0 total=19` |
 | 2026-06-13 | Provider request log | 新增 `TranslationRequestLogEntry` 和 `translate --request-log`；`workflow run` 默认输出 `translation-requests.jsonl`，summary/artifacts 记录 request log 路径和行数；只有真正调用 provider 时记录 source、glossary 和 context，candidate cache 命中不重复记录 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout workflow 双跑 `--limit 1` | 通过；直接测试覆盖首跑 provider 调用写 request log、复跑同上下文 cache hit 不写 request log；fixture smoke 生成 `build/translation-requests.jsonl` 和 `build/workflow/translation-requests.jsonl`，workflow summary 包含 `translation_requests.rows=2`；真实 checkout 首跑 request log `rows=1`，复跑同一候选缓存 `rows=0` 且 trace 来源为 `candidate_cache` |
 | 2026-06-13 | Source_changed 旧译文上下文 | `TranslationContextBundle` 新增 `reason` 和 `previous_target_text`；`source_changed` 且旧目标是中文时把旧译文注入 provider context；OpenAI prompt 明确要求基于旧中文修订 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize RAW source_changed context 抽样 | 通过；直接测试覆盖 source-baseline 产生的 `source_changed` 单元传给 provider 时 context 包含 `reason=source_changed` 和 `previous_target_text=旧译文。`；fixture smoke 全链路通过；真实 RAW 样本 `BattleSpeechBubbleDlg.json dataList.115.dlg` context 中 `previous_target_text_len=7` |
 | 2026-06-13 | Source-baseline path 级增量扫描 | 新增 `scan --source-baseline` / `workflow run --source-baseline`，按上一版 `KR` 与当前 `KR` 的 JSON path / `dataList[id=...]` 稳定键比较源文变化；目标已有旧中文时输出 `source_changed` | `make test`；`make smoke`；fixture source-baseline CLI scan；真实 Localize KR RAW commit `82794094^..82794094` baseline scan | 通过；直接测试覆盖源文变化且目标已有旧中文时输出 1 条 `source_changed`，同文件未变化空目标不进入本次扫描；fixture smoke 生成 `build/source-changed-units.json` 并断言 `reason=source_changed`、`target_text=旧译文。`；真实 RAW 区间识别 5 个源文变化文件、549 个变化文本路径，scan 输出 549 条 `source_changed` |
@@ -38,7 +39,7 @@
 5. QA 尚未覆盖按具体 UI 容器的像素级长度限制；当前已有路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类。
 6. lore cache 已支持 anchors、术语、轻量 TF-IDF n-gram 和离线 hashed-vector 索引召回；尚未接入外部 embedding 服务或专用向量数据库，也未经过 gold set 调参。
 7. Gold set 可从真实 reference tree 自动抽取、分层采样、导出审校包并回写 curated gold；正式模型赛马仍取决于人工审校覆盖范围，且尚未执行真实 OpenAI 多模型评估。
-8. 术语候选提取和 rules 二次提炼仍是粗筛；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
+8. 术语候选提取和 rules 二次提炼仍是粗筛；refined term cache 只复用提炼结果，不会自动证明译名正确；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
 9. Glossary audit 能暴露术语库结构问题，但不会自动决定正确译名；多译名冲突和空译名仍需要术语维护者处理。
 
 ## 未覆盖项

@@ -10,9 +10,11 @@ from limbus_translate.terms import (
     TermCandidate,
     RefinedTerm,
     extract_term_candidates,
+    refine_candidates_with_cache,
     get_term_refiner,
     glossary_terms_from_review_csv,
     is_approved,
+    merge_refined_term_cache,
     promote_refined_terms,
     read_refined_terms,
     write_term_review_pack,
@@ -121,6 +123,79 @@ def test_refined_terms_cache_roundtrip() -> None:
         loaded = read_refined_terms(path)
 
     assert loaded == refined
+
+
+def test_refine_candidates_with_cache_reuses_existing_terms() -> None:
+    class RecordingRefiner:
+        name = "recording"
+
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        def refine(self, candidates: list[TermCandidate]) -> list[RefinedTerm]:
+            self.seen = [candidate.source for candidate in candidates]
+            return [
+                RefinedTerm(
+                    source=candidate.source,
+                    decision="needs_review",
+                    suggested_target="",
+                    note="newly refined",
+                    confidence=0.6,
+                    contexts=candidate.contexts,
+                    provider=self.name,
+                    count=candidate.count,
+                    sample_text=candidate.sample_text,
+                    reason=candidate.reason,
+                    raw={},
+                )
+                for candidate in candidates
+            ]
+
+    cached = [
+        RefinedTerm(
+            source="거울 던전",
+            decision="term",
+            suggested_target="镜牢",
+            note="cached decision",
+            confidence=0.91,
+            contexts=["old::path"],
+            provider="openai",
+            count=1,
+            sample_text="old sample",
+            reason="hangul_phrase",
+            raw={"cached": True},
+        )
+    ]
+    candidates = [
+        TermCandidate(
+            source="거울 던전",
+            count=4,
+            contexts=["StoryData/New.json::dataList.0.content"],
+            sample_text="거울 던전이 열렸다.",
+            reason="hangul_phrase",
+        ),
+        TermCandidate(
+            source="지크프리트",
+            count=1,
+            contexts=["StoryData/New.json::dataList.1.content"],
+            sample_text="지크프리트가 말했다.",
+            reason="marked_name",
+        ),
+    ]
+
+    refiner = RecordingRefiner()
+    refined, new_terms, reused = refine_candidates_with_cache(candidates, refiner, cached)
+    merged = merge_refined_term_cache(cached, refined)
+
+    assert refiner.seen == ["지크프리트"]
+    assert reused == 1
+    assert len(new_terms) == 1
+    assert refined[0].source == "거울 던전"
+    assert refined[0].suggested_target == "镜牢"
+    assert refined[0].contexts == ["StoryData/New.json::dataList.0.content"]
+    assert refined[0].count == 4
+    assert refined[1].provider == "recording"
+    assert {term.source for term in merged} == {"거울 던전", "지크프리트"}
 
 
 def test_get_term_refiner_resolves_supported_providers() -> None:

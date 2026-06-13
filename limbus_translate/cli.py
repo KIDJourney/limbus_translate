@@ -52,9 +52,11 @@ from .terms import (
     extract_term_candidates,
     get_term_refiner,
     glossary_terms_from_review_csv,
+    merge_refined_term_cache,
     promote_refined_terms,
     read_candidates,
     read_refined_terms,
+    refine_candidates_with_cache,
     write_candidates,
     write_refined_terms,
     write_term_review_pack,
@@ -235,14 +237,26 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     terms_summary: dict[str, object] = {}
     term_candidates_path: Path | None = None
     refined_terms_path: Path | None = None
+    terms_cache_path: Path | None = None
     term_review_summary: dict[str, int | str] = {}
     if not args.skip_terms:
         candidates = extract_term_candidates(units, glossary, min_count=args.terms_min_count)
         term_candidates_path = work_dir / "term-candidates.json"
         write_candidates(term_candidates_path, candidates)
-        refined_terms = get_term_refiner(args.terms_provider).refine(candidates)
+        cached_refined_terms = []
+        if args.terms_cache:
+            terms_cache_path = Path(args.terms_cache)
+            cached_refined_terms = read_refined_terms(terms_cache_path) if terms_cache_path.exists() else []
+        refined_terms, new_refined_terms, reused_terms = refine_candidates_with_cache(
+            candidates,
+            get_term_refiner(args.terms_provider),
+            cached_refined_terms,
+        )
         refined_terms_path = work_dir / "refined-terms.json"
         write_refined_terms(refined_terms_path, refined_terms)
+        merged_refined_terms = merge_refined_term_cache(cached_refined_terms, refined_terms)
+        if terms_cache_path is not None:
+            write_refined_terms(terms_cache_path, merged_refined_terms)
         term_review_dir = Path(args.terms_review_dir) if args.terms_review_dir else work_dir / "term-review"
         term_review_summary = write_term_review_pack(
             term_review_dir,
@@ -256,6 +270,13 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         terms_summary = {
             "candidates": len(candidates),
             "refined": len(refined_terms),
+            "cache": {
+                "path": str(terms_cache_path) if terms_cache_path else "",
+                "existing": len(cached_refined_terms),
+                "reused": reused_terms if terms_cache_path is not None else 0,
+                "added": len(new_refined_terms) if terms_cache_path is not None else 0,
+                "total": len(merged_refined_terms) if terms_cache_path is not None else 0,
+            },
             "by_decision": dict(sorted(by_decision.items())),
             "review": term_review_summary,
         }
@@ -361,6 +382,7 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
             "translation_trace": str(translation_trace_path),
             "term_candidates": str(term_candidates_path) if term_candidates_path else "",
             "refined_terms": str(refined_terms_path) if refined_terms_path else "",
+            "refined_terms_cache": str(terms_cache_path) if terms_cache_path else "",
             "term_review_csv": str(term_review_summary.get("review_csv", "")),
             "term_review_jsonl": str(term_review_summary.get("review_jsonl", "")),
             "term_review_paratranz_csv": str(term_review_summary.get("paratranz_csv", "")),
@@ -466,12 +488,24 @@ def cmd_terms_extract(args: argparse.Namespace) -> int:
 
 def cmd_terms_refine(args: argparse.Namespace) -> int:
     candidates = read_candidates(Path(args.candidates))
-    refined = get_term_refiner(args.provider).refine(candidates)
+    cached_refined_terms = []
+    cache_path = Path(args.cache) if args.cache else None
+    if cache_path is not None and cache_path.exists():
+        cached_refined_terms = read_refined_terms(cache_path)
+    refined, new_refined_terms, reused_terms = refine_candidates_with_cache(
+        candidates,
+        get_term_refiner(args.provider),
+        cached_refined_terms,
+    )
     write_refined_terms(Path(args.output), refined)
+    if cache_path is not None:
+        write_refined_terms(cache_path, merge_refined_term_cache(cached_refined_terms, refined))
     by_decision: dict[str, int] = {}
     for term in refined:
         by_decision[term.decision] = by_decision.get(term.decision, 0) + 1
     print(f"terms refine complete: {len(refined)} candidates -> {args.output}")
+    if cache_path is not None:
+        print(f"terms refine cache: reused={reused_terms} added={len(new_refined_terms)} -> {cache_path}")
     print(json.dumps(by_decision, ensure_ascii=False, sort_keys=True))
     return 0
 
@@ -701,6 +735,7 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--length-policy", default="")
     workflow_run.add_argument("--provider", default="dry-run")
     workflow_run.add_argument("--terms-provider", default="rules")
+    workflow_run.add_argument("--terms-cache", default="", help="Optional persistent refined term cache JSON.")
     workflow_run.add_argument("--terms-min-count", type=int, default=1)
     workflow_run.add_argument("--terms-review-dir", default="")
     workflow_run.add_argument("--terms-include-not-term", action="store_true")
@@ -820,6 +855,7 @@ def build_parser() -> argparse.ArgumentParser:
     terms_refine.add_argument("--candidates", default="cache/terms/candidates.json")
     terms_refine.add_argument("--output", default="cache/terms/refined.json")
     terms_refine.add_argument("--provider", choices=["rules", "openai"], default="rules")
+    terms_refine.add_argument("--cache", default="", help="Optional persistent refined term cache JSON to reuse and update.")
     terms_refine.set_defaults(func=cmd_terms_refine)
     terms_promote = terms_sub.add_parser("promote")
     terms_promote.add_argument("--refined", default="cache/terms/refined.json")

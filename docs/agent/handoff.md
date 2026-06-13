@@ -2,6 +2,26 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-14 — Refined term cache 跨更新复用
+
+### 已完成
+
+- `terms.py` 新增 `refine_candidates_with_cache` 和 `merge_refined_term_cache`。
+- `terms refine` 新增 `--cache`，可读取/更新持久 refined term cache；命中 source 时复用旧 decision、suggested target 和 note，只刷新本轮 contexts、count、sample text。
+- `workflow run` 新增 `--terms-cache`，summary 的 `terms.cache` 记录 existing、reused、added、total，artifact 增加 `refined_terms_cache`。
+- `make smoke` 已覆盖独立 `terms refine --cache` 和 workflow `--terms-cache`。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖缓存命中不再调用 refiner，未命中候选继续 refine。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，fixture 生成 `build/refined-terms-cache.json` 和 `build/workflow/refined-terms-cache.json`，workflow summary 包含 `terms.cache.added=3 total=3`。
+- 真实 Localize checkout：workflow `--limit 1 --terms-cache /tmp/limbus-terms-refined-cache.json` 双跑，首跑 `added=19 reused=0`，复跑 `existing=19 reused=19 added=0 total=19`。
+
+### 风险
+
+- refined term cache 复用的是提炼决策，不等于术语已正式确认；进入正式 glossary 仍要走 review pack / apply-review 或 Paratranz 维护流程。
+
 ## 2026-06-13 — Provider request log
 
 ### 已完成

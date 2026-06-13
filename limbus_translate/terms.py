@@ -135,6 +135,61 @@ def read_refined_terms(path: Path) -> list[RefinedTerm]:
     return [RefinedTerm(**row) for row in rows]
 
 
+def _term_cache_key(source: str) -> str:
+    return normalize_text(source)
+
+
+def _reuse_refined_term(candidate: TermCandidate, cached: RefinedTerm) -> RefinedTerm:
+    return RefinedTerm(
+        source=candidate.source,
+        decision=cached.decision,
+        suggested_target=cached.suggested_target,
+        note=cached.note,
+        confidence=cached.confidence,
+        contexts=candidate.contexts,
+        provider=cached.provider,
+        count=candidate.count,
+        sample_text=candidate.sample_text,
+        reason=candidate.reason,
+        raw=cached.raw,
+    )
+
+
+def refine_candidates_with_cache(
+    candidates: list[TermCandidate],
+    refiner: TermRefiner,
+    cached_terms: list[RefinedTerm],
+) -> tuple[list[RefinedTerm], list[RefinedTerm], int]:
+    cached_by_source = {_term_cache_key(term.source): term for term in cached_terms if _term_cache_key(term.source)}
+    missing_candidates: list[TermCandidate] = []
+    for candidate in candidates:
+        if _term_cache_key(candidate.source) not in cached_by_source:
+            missing_candidates.append(candidate)
+
+    new_terms = refiner.refine(missing_candidates)
+    new_by_source = {_term_cache_key(term.source): term for term in new_terms}
+    refined: list[RefinedTerm] = []
+    reused = 0
+    for candidate in candidates:
+        key = _term_cache_key(candidate.source)
+        cached = cached_by_source.get(key)
+        if cached is not None:
+            refined.append(_reuse_refined_term(candidate, cached))
+            reused += 1
+            continue
+        refined.append(new_by_source[key])
+    return refined, new_terms, reused
+
+
+def merge_refined_term_cache(existing: list[RefinedTerm], updates: list[RefinedTerm]) -> list[RefinedTerm]:
+    merged = {_term_cache_key(term.source): term for term in existing if _term_cache_key(term.source)}
+    for term in updates:
+        key = _term_cache_key(term.source)
+        if key:
+            merged[key] = term
+    return sorted(merged.values(), key=lambda term: normalize_text(term.source))
+
+
 def promote_refined_terms(
     refined_terms: list[RefinedTerm],
     *,
