@@ -7,7 +7,8 @@
 1. 确认 JSON 扫描能识别目标缺失、目标为空、目标等于韩文源文、源文相对 baseline 变化的待译单元。
 2. 确认 Paratranz 术语缓存能同步、离线导入，并能被审计出明显质量问题；确认 refined term cache 能跨更新复用已提炼术语。
 3. 确认 dry-run 翻译能生成同结构输出 JSON，并能记录候选缓存、provider request log 与逐条 trace。
-4. 确认文档骨架和 Markdown 相对链接不损坏。
+4. 确认 OpenAI-compatible Chat / Qwen-MT provider 只扩展 provider 层，并能进入现有 eval/cache/log/trace 链路。
+5. 确认文档骨架和 Markdown 相对链接不损坏。
 
 ## 当前覆盖
 
@@ -15,7 +16,7 @@
 |---|---|---|
 | 文档结构检查 | 根目录入口、关键目录、关键 README 是否存在 | `make validate-docs` |
 | Markdown 链接检查 | `docs/` 和根目录入口中的相对 Markdown 链接 | `make validate-docs` |
-| 直接单元测试 | 扫描器、scan policy include/exclude、changed-files 文件级增量扫描、source-baseline JSON path 级源文变化扫描、source_changed 旧译文注入 provider context、术语匹配、glossary audit、lore cache 导入/anchors 召回/TF-IDF 相似召回/lore index roundtrip 与搜索、gold set 构建/分层采样/gold review pack/gold review apply/eval report/eval comparison、translation review pack/apply、provider candidate cache 复用、provider request log、translation trace、refined term cache 复用、refined term promote、term review pack、review CSV apply、MQM category/summary、QA length policy 和估算显示宽度、ContextBundle/provider context 传递、跨文件相似 TM 召回核心行为 | `make test` |
+| 直接单元测试 | 扫描器、scan policy include/exclude、changed-files 文件级增量扫描、source-baseline JSON path 级源文变化扫描、source_changed 旧译文注入 provider context、术语匹配、glossary audit、lore cache 导入/anchors 召回/TF-IDF 相似召回/lore index roundtrip 与搜索、gold set 构建/分层采样/gold review pack/gold review apply/eval report/eval comparison、translation review pack/apply、provider candidate cache 复用、provider request log、translation trace、OpenAI-compatible Chat / Qwen-MT payload、refined term cache 复用、refined term promote、term review pack、review CSV apply、MQM category/summary、QA length policy 和估算显示宽度、ContextBundle/provider context 传递、跨文件相似 TM 召回核心行为 | `make test` |
 | CLI smoke | 带 scan policy、changed-files 和 source-baseline 的 fixture 扫描、TM 构建、glossary audit、lore import、lore index/search、state 初始化、带 lore index 的 dry-run 同结构输出、candidate cache、provider request log、translation trace、带 length policy 的 QA 报告、translation review pack/apply、gold set 构建、gold sample、gold review pack、curated gold、eval report、eval compare report、术语候选缓存、rules 二次提炼缓存、refined term cache、review pack、review apply、promoted glossary cache，以及带 glossary audit / refined term cache / candidate cache / request log / trace 的 `workflow run` 端到端 summary 和术语审校包 artifact | `make smoke` |
 | Paratranz smoke | 项目 `6860` 术语同步 | `make sync-glossary` |
 | TODO / 待确认扫描 | 发现未解决问题和阻塞项 | `rg "TODO|待确认|阻塞" docs` |
@@ -34,7 +35,7 @@
 
 - 修改 `json_paths.py`、`scanner.py` 或 `config/scan-policy.sample.json`：执行 `make test`、`make smoke` 和真实 checkout 扫描。
 - 修改 `glossary.py`：执行 `make test`、`make smoke`、`make sync-glossary` 和一次真实 glossary audit。
-- 修改 `lore.py`、`context.py`、`translator.py`、`translation_cache.py` 或 provider：执行 `make test` 和 `make smoke`。
+- 修改 `lore.py`、`context.py`、`translator.py`、`translation_cache.py` 或 provider：执行 `make test` 和 `make smoke`；新增真实 provider 时还要补 mock payload 测试，真实 API 调用单独记录。
 - 修改 `cli.py` 的 `workflow run` 或其串联模块：执行 `make test`、`make smoke`、`make validate-docs` 和至少一次真实 checkout 小范围 workflow。
 - 修改 `evaluation.py` 或 gold set schema：执行 `make test` 和 `make smoke`。
 - 修改 `terms.py` 或 term refiner provider：执行 `make test` 和 `make smoke`；OpenAI term refiner 变化至少需要 mock/fixture 验证，真实 API 调用单独记录。

@@ -32,7 +32,7 @@ AS_OF: 2026-06-14
 | 候选 | 作为 | 官方证据 | 项目内判断 |
 |---|---|---|---|
 | OpenAI GPT 系列 | 高风险文本、风格修订、仲裁、兜底 | OpenAI models 文档列出当前模型线；GPT-4.1 发布说明强调长上下文和指令能力。 | 已有 `openai` / `openai:<model>` provider；默认不假设最优，必须跑 curated gold。 |
-| Qwen-MT | 中文中心批量候选 | Qwen-MT 官方文档称支持 92 种语言，提供术语干预、领域提示和记忆库；Qwen 博客说明可通过 OpenAI-compatible API 使用。 | 高优先级候选。需要新增 provider 或使用兼容 Chat Completions 适配，并测试韩文->简中。 |
+| Qwen-MT | 中文中心批量候选 | Qwen-MT 官方文档称支持 92 种语言，提供术语干预、领域提示和记忆库；Qwen 文档说明可通过 OpenAI-compatible Chat Completions、单条 user message 和 `translation_options` 调用。 | 已接入 `qwen-mt` provider，可进入 `eval compare`；仍需真实韩文->简中 curated gold 评估。 |
 | Google Cloud Translation | 企业 MT 基线、自适应 MT | Google Cloud Translation 支持语言列表包含 Korean 和 Chinese；官方提供 glossary 和 adaptive translation。 | 适合和项目 TM/reference pairs 结合赛马。 |
 | Azure Translator / Custom Translator | 企业 MT 基线、自定义模型 | Azure language support 包含 Korean 和 Chinese Simplified；Custom Translator 支持用文档/词典构建定制 NMT 系统。 | 可作为有云资源时的定制 MT 候选。需验证直连韩->简中定制路径和成本。 |
 | DeepL API | 通用 MT 基线 | DeepL API 提供 supported languages endpoint、glossary、style rules 和 translation memory 相关能力。 | 可加入候选，但韩->简中的具体质量必须本项目评测。 |
@@ -102,7 +102,7 @@ python3 -m limbus_translate.cli eval compare \
 ## 工程路线
 
 1. 保持 `openai` provider 作为强 LLM 兜底，避免阻塞。
-2. 新增 OpenAI-compatible Chat Completions provider，用于 Qwen-MT、DashScope 或其他兼容端点。
+2. 已新增 OpenAI-compatible Chat Completions provider 和专用 `qwen-mt` provider，用于 Qwen-MT、DashScope 或其他兼容端点进入模型赛马。
 3. 新增 Google / Azure / DeepL provider 时，只接入候选生成，不直接绕过 QA 和 review。
 4. 给 `eval compare` 增加 request log / provider cost metadata，方便模型赛马复盘。
 5. 对 curated gold 做人工分层维护，禁止用未审自动抽样证明模型最优。
@@ -124,3 +124,5 @@ python3 -m limbus_translate.cli eval compare \
 | S11 | https://developers.deepl.com/api-reference/multilingual-glossaries | official | public | 2026-06-14 | DeepL glossary 管理能力。 |
 | S12 | https://docs.aws.amazon.com/translate/latest/dg/what-is.html | official | public | 2026-06-14 | Amazon Translate 基线能力。 |
 | S13 | https://ai.meta.com/research/no-language-left-behind/ | official | public | 2026-06-14 | NLLB / FLORES 多语言 MT 背景。 |
+| S14 | https://www.alibabacloud.com/help/en/model-studio/compatibility-of-openai-with-dashscope | official | public | 2026-06-14 | DashScope OpenAI-compatible Chat base URL 和 `/chat/completions` 端点。 |
+| S15 | https://www.alibabacloud.com/help/en/model-studio/machine-translation | official | public | 2026-06-14 | Qwen-MT 单条 user message、`translation_options`、模型选择和语言支持。 |
