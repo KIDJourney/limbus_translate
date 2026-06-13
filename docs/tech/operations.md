@@ -161,6 +161,12 @@ python3 -m limbus_translate.cli workflow finalize \
   --fail-if-pending \
   --fail-on-error
 
+python3 -m limbus_translate.cli localize make-patch \
+  --repo /path/to/LocalizeLimbusCompany \
+  --units build/missing-units.json \
+  --state cache/state/reviewed.json \
+  --output build/localize-translation.patch
+
 python3 -m limbus_translate.cli tm evaluate \
   --memory cache/tm/exact.json \
   --gold cache/eval/gold-curated.json \

@@ -37,7 +37,7 @@ from .lore import (
     write_lore_cache,
     write_lore_index,
 )
-from .localize import prepare_localize_update, prepared_update_payload
+from .localize import make_translation_patch, prepare_localize_update, prepared_update_payload
 from .memory import build_memory, evaluate_memory_retrieval, read_memory, write_memory, write_memory_evaluation_report
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
@@ -551,6 +551,22 @@ def cmd_localize_prepare_update(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_localize_make_patch(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    result = make_translation_patch(
+        repo=Path(args.repo),
+        units=units,
+        states=read_state(Path(args.state)),
+        patch_path=Path(args.output),
+        target_dir=args.target_dir,
+    )
+    payload = asdict(result)
+    print(f"localize patch complete: {result.replacements} replacements across {len(result.changed_files)} files -> {args.output}")
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def cmd_lore_index(args: argparse.Namespace) -> int:
     entries = read_lore_cache(Path(args.lore))
     index = build_lore_index(entries, dimensions=args.dimensions)
@@ -1038,6 +1054,13 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_update.add_argument("--work-dir", default="build", help="Directory for changed-files and source-baseline.")
     prepare_update.add_argument("--language-dir", default="KR", help="Source language directory to archive from base.")
     prepare_update.set_defaults(func=cmd_localize_prepare_update)
+    make_patch = localize_sub.add_parser("make-patch")
+    make_patch.add_argument("--repo", required=True, help="LocalizeLimbusCompany checkout path.")
+    make_patch.add_argument("--units", default="build/missing-units.json")
+    make_patch.add_argument("--state", required=True, help="Reviewed or locked unit state JSON.")
+    make_patch.add_argument("--output", default="build/localize-translation.patch")
+    make_patch.add_argument("--target-dir", default="LLC_zh-CN")
+    make_patch.set_defaults(func=cmd_localize_make_patch)
 
     qa = sub.add_parser("qa", help="Check translated output against source units.")
     qa.add_argument("--units", default="build/missing-units.json")
