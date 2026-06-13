@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-13 | Provider request log | 新增 `TranslationRequestLogEntry` 和 `translate --request-log`；`workflow run` 默认输出 `translation-requests.jsonl`，summary/artifacts 记录 request log 路径和行数；只有真正调用 provider 时记录 source、glossary 和 context，candidate cache 命中不重复记录 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout workflow 双跑 `--limit 1` | 通过；直接测试覆盖首跑 provider 调用写 request log、复跑同上下文 cache hit 不写 request log；fixture smoke 生成 `build/translation-requests.jsonl` 和 `build/workflow/translation-requests.jsonl`，workflow summary 包含 `translation_requests.rows=2`；真实 checkout 首跑 request log `rows=1`，复跑同一候选缓存 `rows=0` 且 trace 来源为 `candidate_cache` |
 | 2026-06-13 | Source_changed 旧译文上下文 | `TranslationContextBundle` 新增 `reason` 和 `previous_target_text`；`source_changed` 且旧目标是中文时把旧译文注入 provider context；OpenAI prompt 明确要求基于旧中文修订 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize RAW source_changed context 抽样 | 通过；直接测试覆盖 source-baseline 产生的 `source_changed` 单元传给 provider 时 context 包含 `reason=source_changed` 和 `previous_target_text=旧译文。`；fixture smoke 全链路通过；真实 RAW 样本 `BattleSpeechBubbleDlg.json dataList.115.dlg` context 中 `previous_target_text_len=7` |
 | 2026-06-13 | Source-baseline path 级增量扫描 | 新增 `scan --source-baseline` / `workflow run --source-baseline`，按上一版 `KR` 与当前 `KR` 的 JSON path / `dataList[id=...]` 稳定键比较源文变化；目标已有旧中文时输出 `source_changed` | `make test`；`make smoke`；fixture source-baseline CLI scan；真实 Localize KR RAW commit `82794094^..82794094` baseline scan | 通过；直接测试覆盖源文变化且目标已有旧中文时输出 1 条 `source_changed`，同文件未变化空目标不进入本次扫描；fixture smoke 生成 `build/source-changed-units.json` 并断言 `reason=source_changed`、`target_text=旧译文。`；真实 RAW 区间识别 5 个源文变化文件、549 个变化文本路径，scan 输出 549 条 `source_changed` |
 | 2026-06-13 | 候选译文缓存与 translation trace | 新增 `translation_cache.py`，`translate` 支持 `--candidate-cache` / `--trace`，`workflow run` 默认输出 `translation-candidates.json` 和 `translation-trace.jsonl`；缓存 key 绑定 provider、source hash、context hash 和 glossary hash，trace 记录 state/TM/cache/provider 来源 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout workflow 双跑 `--limit 1` | 通过；直接测试覆盖第一次 provider 调用写入候选缓存、第二次同上下文从 cache 复用且不再调用 provider、trace 来源从 `provider` 变为 `candidate_cache`；fixture smoke 生成 `build/translation-candidates.json` / `build/translation-trace.jsonl`，workflow summary 包含 `translation_cache` 和 `translation_trace`；真实 workflow 首跑 cache `added=1`，复跑同一 cache `added=0 existing=1`，第二次 trace 来源为 `candidate_cache` |
@@ -30,7 +31,7 @@
 
 ## 当前风险
 
-1. `workflow run` 已能产出端到端 artifact、术语审校包、候选译文缓存、translation trace、翻译审校包和 summary，但当前正式发布仍不能跳过人工审校；dry-run 产生的韩文残留 warning 是预期门禁信号，不是可发布译文。
+1. `workflow run` 已能产出端到端 artifact、术语审校包、候选译文缓存、provider request log、translation trace、翻译审校包和 summary，但当前正式发布仍不能跳过人工审校；dry-run 产生的韩文残留 warning 是预期门禁信号，不是可发布译文。
 2. Source-baseline 可以把扫描范围收敛到源文新增/变化的 JSON path；如果没有 baseline，只使用 changed-files 时仍只能过滤到文件级。
 3. Scan policy 已提供文件/path/key/source 内容级 include/exclude 配置，但 sample 规则仍只是初始规则库；新增文件类型仍需用真实 diff 和人工抽查校准。
 4. 缺失 `dataList` record 可以 append 源 record 并替换已处理字段，但同一 record 中未进入当前 units 的其他韩文字段仍可能需要后续扫描/QA 复审。

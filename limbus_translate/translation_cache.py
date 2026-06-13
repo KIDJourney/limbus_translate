@@ -40,6 +40,27 @@ class TranslationTraceEntry:
     glossary_terms: int
 
 
+@dataclass(frozen=True)
+class TranslationRequestLogEntry:
+    cache_key: str
+    provider: str
+    source_hash: str
+    context_hash: str
+    glossary_hash: str
+    unit_id: str
+    stable_key: str
+    relative_file: str
+    json_path: str
+    source_text: str
+    glossary: list[tuple[str, str, str]]
+    context: str
+    created_at: str
+
+
+def _utc_now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
 def digest_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
@@ -92,7 +113,39 @@ def make_cache_entry(
         json_path=json_path,
         source_text=source_text,
         target_text=target_text,
-        created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        created_at=_utc_now(),
+    )
+
+
+def make_request_log_entry(
+    *,
+    cache_key: str,
+    provider: str,
+    source_hash: str,
+    context_hash: str,
+    glossary_hash: str,
+    unit_id: str,
+    stable_key: str,
+    relative_file: str,
+    json_path: str,
+    source_text: str,
+    glossary: list[tuple[str, str, str]],
+    context: str,
+) -> TranslationRequestLogEntry:
+    return TranslationRequestLogEntry(
+        cache_key=cache_key,
+        provider=provider,
+        source_hash=source_hash,
+        context_hash=context_hash,
+        glossary_hash=glossary_hash,
+        unit_id=unit_id,
+        stable_key=stable_key,
+        relative_file=relative_file,
+        json_path=json_path,
+        source_text=source_text,
+        glossary=glossary,
+        context=context,
+        created_at=_utc_now(),
     )
 
 
@@ -110,6 +163,14 @@ def write_translation_cache(path: Path, entries: dict[str, TranslationCacheEntry
 
 
 def write_translation_trace(path: Path, entries: list[TranslationTraceEntry]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for entry in entries:
+            handle.write(json.dumps(asdict(entry), ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+
+def write_translation_request_log(path: Path, entries: list[TranslationRequestLogEntry]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         for entry in entries:

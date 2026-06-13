@@ -58,9 +58,10 @@ smoke:
 		--state build/state.json \
 		--candidate-cache build/translation-candidates.json \
 		--trace build/translation-trace.jsonl \
+		--request-log build/translation-requests.jsonl \
 		--output build/LLC_zh-CN \
 		--provider dry-run
-	python3 -c "import json; cache=json.load(open('build/translation-candidates.json', encoding='utf-8')); trace=[json.loads(line) for line in open('build/translation-trace.jsonl', encoding='utf-8') if line.strip()]; assert len(cache) == 2; assert len(trace) == 2; assert all(row['translation_source'] == 'provider' for row in trace); assert all(row['cache_key'] for row in trace); print('translation cache and trace schema ok')"
+	python3 -c "import json; cache=json.load(open('build/translation-candidates.json', encoding='utf-8')); trace=[json.loads(line) for line in open('build/translation-trace.jsonl', encoding='utf-8') if line.strip()]; requests=[json.loads(line) for line in open('build/translation-requests.jsonl', encoding='utf-8') if line.strip()]; assert len(cache) == 2; assert len(trace) == 2; assert len(requests) == 2; assert all(row['translation_source'] == 'provider' for row in trace); assert all(row['cache_key'] for row in trace); assert all(row['cache_key'] and row['source_text'] and row['context'] and 'glossary' in row for row in requests); print('translation cache, request log, and trace schema ok')"
 	python3 -m limbus_translate.cli qa \
 		--units build/missing-units.json \
 		--output-root build/LLC_zh-CN \
@@ -140,7 +141,7 @@ smoke:
 		--lore-input tests/fixtures/lore \
 		--length-policy config/length-policy.sample.json \
 		--provider dry-run
-	python3 -c "import json; summary=json.load(open('build/workflow/summary.json', encoding='utf-8')); assert summary['units'] == 2; assert summary['translated'] == 2; assert summary['artifacts']['lore_index']; assert summary['artifacts']['glossary_audit']; assert summary['artifacts']['translation_candidates']; assert summary['artifacts']['translation_trace']; assert summary['artifacts']['term_candidates']; assert summary['artifacts']['refined_terms']; assert summary['artifacts']['term_review_csv']; assert summary['artifacts']['translation_review_csv']; assert summary['artifacts']['translation_review_jsonl']; assert summary['glossary_audit']['total_terms'] == 2; assert summary['glossary_audit']['issues'] == 0; assert summary['translation_cache']['added'] == 2; assert summary['translation_cache']['total'] == 2; assert summary['translation_trace']['rows'] == 2; assert summary['translation_review']['selected'] == 2; assert summary['terms']['candidates'] == 3; assert summary['terms']['refined'] == 3; assert summary['qa_issues'] == 2; print('workflow summary schema ok')"
+	python3 -c "import json; summary=json.load(open('build/workflow/summary.json', encoding='utf-8')); assert summary['units'] == 2; assert summary['translated'] == 2; assert summary['artifacts']['lore_index']; assert summary['artifacts']['glossary_audit']; assert summary['artifacts']['translation_candidates']; assert summary['artifacts']['translation_requests']; assert summary['artifacts']['translation_trace']; assert summary['artifacts']['term_candidates']; assert summary['artifacts']['refined_terms']; assert summary['artifacts']['term_review_csv']; assert summary['artifacts']['translation_review_csv']; assert summary['artifacts']['translation_review_jsonl']; assert summary['glossary_audit']['total_terms'] == 2; assert summary['glossary_audit']['issues'] == 0; assert summary['translation_cache']['added'] == 2; assert summary['translation_cache']['total'] == 2; assert summary['translation_requests']['rows'] == 2; assert summary['translation_trace']['rows'] == 2; assert summary['translation_review']['selected'] == 2; assert summary['terms']['candidates'] == 3; assert summary['terms']['refined'] == 3; assert summary['qa_issues'] == 2; print('workflow summary schema ok')"
 
 sync-glossary:
 	python3 -m limbus_translate.cli glossary sync-paratranz \

@@ -78,6 +78,7 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
 
         provider = CountingProvider()
         cache_updates = []
+        first_request_log = []
         first_trace = []
         overlay_existing_target(source, target, first_output)
         first_count = translate_units(
@@ -89,6 +90,7 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
             provider=provider,
             candidate_cache={},
             candidate_cache_updates=cache_updates,
+            request_log=first_request_log,
             trace=first_trace,
             provider_name="counting",
         )
@@ -96,6 +98,7 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
         cache = {entry.cache_key: entry for entry in cache_updates}
         second_provider = CountingProvider()
         second_updates = []
+        second_request_log = []
         second_trace = []
         overlay_existing_target(source, target, second_output)
         second_count = translate_units(
@@ -107,6 +110,7 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
             provider=second_provider,
             candidate_cache=cache,
             candidate_cache_updates=second_updates,
+            request_log=second_request_log,
             trace=second_trace,
             provider_name="counting",
         )
@@ -118,6 +122,13 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
     assert second_provider.calls == 0
     assert len(cache_updates) == 1
     assert second_updates == []
+    assert len(first_request_log) == 1
+    assert first_request_log[0].cache_key == cache_updates[0].cache_key
+    assert first_request_log[0].provider == "counting"
+    assert first_request_log[0].source_text == "새 문장입니다."
+    assert first_request_log[0].context
+    assert first_request_log[0].glossary == []
+    assert second_request_log == []
     assert first_trace[0].translation_source == "provider"
     assert second_trace[0].translation_source == "candidate_cache"
     assert data["dataList"][0]["desc"] == "缓存译文。"

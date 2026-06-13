@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Provider request log
+
+### 已完成
+
+- `translation_cache.py` 新增 `TranslationRequestLogEntry` 和 `write_translation_request_log`。
+- `translate` 新增 `--request-log`，记录真正发送给 provider 的 `source_text`、`glossary`、`context`、cache key 和 hash。
+- `workflow run` 默认输出 `translation-requests.jsonl`，并在 `summary.json` 的 `translation_requests` 与 `artifacts.translation_requests` 中记录路径和行数。
+- candidate cache 命中不会写 request log，避免把复用结果误记为新 provider 调用。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖首跑 provider 调用写 request log、复跑 cache hit 不写 request log。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，fixture 生成 `build/translation-requests.jsonl` 和 `build/workflow/translation-requests.jsonl`，workflow summary 包含 `translation_requests.rows=2`。
+- `make validate-docs`：通过，36 个 Markdown 文件链接检查通过。
+- `git diff --check`：通过。
+- 真实 Localize checkout：workflow `--limit 1` 使用同一 `/tmp/limbus-request-log-candidates.json` 双跑，首跑 request log `rows=1`，复跑 `rows=0` 且 trace 来源为 `candidate_cache`。
+
+### 风险
+
+- request log 记录的是 provider 入参，不证明译文质量；正式写入仍依赖 QA、review pack、人工审校和后续真实模型评估。
+
 ## 2026-06-13 — Source_changed 旧译文上下文
 
 ### 已完成

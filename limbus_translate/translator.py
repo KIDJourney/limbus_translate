@@ -14,9 +14,11 @@ from .scanner import TranslationUnit, dump_json, get_data_list_match, load_json
 from .state import UnitState, is_locked, state_for_unit
 from .translation_cache import (
     TranslationCacheEntry,
+    TranslationRequestLogEntry,
     TranslationTraceEntry,
     build_cache_key,
     make_cache_entry,
+    make_request_log_entry,
 )
 
 
@@ -52,6 +54,7 @@ def translate_units(
     states: dict[str, UnitState] | None = None,
     candidate_cache: dict[str, TranslationCacheEntry] | None = None,
     candidate_cache_updates: list[TranslationCacheEntry] | None = None,
+    request_log: list[TranslationRequestLogEntry] | None = None,
     trace: list[TranslationTraceEntry] | None = None,
     provider_name: str = "",
     limit: int | None = None,
@@ -110,6 +113,23 @@ def translate_units(
                     translated = cached.target_text
                     translation_source = "candidate_cache"
                 else:
+                    if request_log is not None:
+                        request_log.append(
+                            make_request_log_entry(
+                                cache_key=cache_key,
+                                provider=provider_name,
+                                source_hash=unit.source_hash,
+                                context_hash=context_hash,
+                                glossary_hash=glossary_hash,
+                                unit_id=unit.unit_id,
+                                stable_key=unit.stable_key,
+                                relative_file=unit.relative_file,
+                                json_path=unit.json_path,
+                                source_text=unit.source_text,
+                                glossary=request_glossary,
+                                context=context_json,
+                            )
+                        )
                     translated = provider.translate(
                         TranslationRequest(
                             source_text=unit.source_text,
