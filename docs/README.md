@@ -9,6 +9,7 @@
 | [product](product/README.md) | 产品定位、PRD、范围、用户故事、路线图 | 产品 agent、实现 agent、评审者 |
 | [design](design/README.md) | 体验目标、信息架构、交互、UI、组件状态、视觉规范 | 设计 agent、前端 agent、评审者 |
 | [tech](tech/README.md) | 架构、模块职责、接口、数据、依赖、运维 | 架构 agent、开发 agent、排障 agent |
+| [research](research/README.md) | 模型、流程和外部资料调研，沉淀需要定期复核的判断 | 研究 agent、架构 agent、翻译 agent |
 | [lore](lore/README.md) | 世界观、角色、组织和设定笔记，用于 lore cache 导入 | 翻译 agent、审校者 |
 | [test](test/README.md) | 测试策略、测试方案、自动化覆盖、回归要求 | 测试 agent、开发 agent |
 | [verification](verification/README.md) | 业务场景验证方法、证据、结论、阻塞点、未覆盖项 | 验证 agent、发布 agent、评审者 |
