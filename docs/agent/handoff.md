@@ -10,11 +10,13 @@
 - 当前真实扫描结果为 22 条 `target_same_as_source`，其中包含 19 条 content 和 3 条 `StoryData/S001A` 可见 `teller`。
 - 22 条 reviewed 译文已从 ignored `build/real-translation/reviewed-state.json` 固化到可追踪文件 `data/state/localize-reviewed-9184302e.json`。
 - `workflow finalize` 当前会输出可应用 patch，并在 summary 中记录全输出可见韩文残留审计。
+- `make reproduce-current-localize` 可从 Localize checkout、Paratranz 术语同步、scan 到 finalize 一条命令复现当前 patch。
 
 ### 验证状态
 
 - `python3 -m limbus_translate.cli scan --source build/real-localize/KR --target build/real-localize/LLC_zh-CN --output build/current-real/missing-units.json --scan-policy config/scan-policy.sample.json`：22 units。
 - `workflow finalize` 使用 `data/state/localize-reviewed-9184302e.json`：22/22 reviewed，QA 0，patch 22 replacements / 11 files，`apply_check=true`。
+- `make reproduce-current-localize`：通过，复现同一 22 条 reviewed patch。
 - Visible Hangul audit：total 269，allowed glossary 27，allowed source note 1，suppressed internal 241，warnings 0。
 - 当前 patch：`build/current-real/finalize/localize-translation.patch`。
 

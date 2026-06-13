@@ -264,7 +264,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `workflow finalize` 会在不调用 provider 的前提下串联 `state status`、reviewed state 应用、最终 QA 和全输出可见韩文残留审计，输出发布候选目录以及 `state-status.json`、`qa-report.json`、`summary.json`。它适合人工审校完成后做发布前收口；`--fail-if-pending` 会拦截仍未审校的单元，`--fail-on-error` 会拦截 QA error。
 
-当前已审校的真实 LocalizeLimbusCompany 批次对应上游 commit `9184302e785805924807919587cd5264186b19eb`，reviewed state 已保存在 `data/state/localize-reviewed-9184302e.json`。清理 `build/` 后，可重新扫描并用该 state 复现 22 条 reviewed 单元和可应用 patch。
+当前已审校的真实 LocalizeLimbusCompany 批次对应上游 commit `9184302e785805924807919587cd5264186b19eb`，reviewed state 已保存在 `data/state/localize-reviewed-9184302e.json`。清理 `build/` 后，可用 `make reproduce-current-localize` 重新 checkout、同步术语，并以 GitHub `LLC_zh-CN` 为目标基线只扫描未翻译或仍为韩文的缺口，用该 state 复现 22 条 reviewed 单元和可应用 patch。
 
 `tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 

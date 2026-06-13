@@ -1,4 +1,4 @@
-.PHONY: validate-docs test smoke sync-glossary
+.PHONY: validate-docs test smoke sync-glossary reproduce-current-localize
 
 validate-docs:
 	./scripts/validate-docs.sh
@@ -204,3 +204,6 @@ sync-glossary:
 	python3 -m limbus_translate.cli glossary sync-paratranz \
 		--project-id 6860 \
 		--output cache/glossary/paratranz-6860.json
+
+reproduce-current-localize:
+	bash scripts/reproduce-current-localize.sh
