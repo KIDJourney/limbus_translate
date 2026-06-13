@@ -54,6 +54,11 @@ python3 -m limbus_translate.cli qa \
   --output-root build/LLC_zh-CN \
   --glossary cache/glossary/paratranz-6860.json \
   --report build/qa-report.json
+
+python3 -m limbus_translate.cli terms extract \
+  --units build/missing-units.json \
+  --glossary cache/glossary/paratranz-6860.json \
+  --output cache/terms/candidates.json
 ```
 
 使用 OpenAI provider 前需要安装可选依赖并设置 API key：

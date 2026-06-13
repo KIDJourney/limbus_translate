@@ -10,6 +10,7 @@ from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, write_issues
 from .scanner import TranslationUnit, scan_missing, write_units
+from .terms import extract_term_candidates, write_candidates
 from .translator import overlay_existing_target, translate_units
 
 
@@ -82,6 +83,16 @@ def cmd_qa(args: argparse.Namespace) -> int:
     return 1 if any(issue.severity == "error" for issue in issues) and args.fail_on_error else 0
 
 
+def cmd_terms_extract(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    glossary = read_cache(Path(args.glossary)) if args.glossary else []
+    candidates = extract_term_candidates(units, glossary, min_count=args.min_count)
+    write_candidates(Path(args.output), candidates)
+    print(f"terms extract complete: {len(candidates)} candidates -> {args.output}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="limbus-translate")
     sub = parser.add_subparsers(required=True)
@@ -131,6 +142,15 @@ def build_parser() -> argparse.ArgumentParser:
     qa.add_argument("--report", default="build/qa-report.json")
     qa.add_argument("--fail-on-error", action="store_true")
     qa.set_defaults(func=cmd_qa)
+
+    terms = sub.add_parser("terms", help="Extract and cache candidate glossary terms.")
+    terms_sub = terms.add_subparsers(required=True)
+    terms_extract = terms_sub.add_parser("extract")
+    terms_extract.add_argument("--units", default="build/missing-units.json")
+    terms_extract.add_argument("--glossary", default="")
+    terms_extract.add_argument("--output", default="cache/terms/candidates.json")
+    terms_extract.add_argument("--min-count", type=int, default=1)
+    terms_extract.set_defaults(func=cmd_terms_extract)
     return parser
 
 

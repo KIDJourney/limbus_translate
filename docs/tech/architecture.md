@@ -16,6 +16,7 @@ LocalizeLimbusCompany checkout
     -> providers.py: dry-run / OpenAI provider
     -> translator.py: overlay existing target tree and set translated JSON paths
     -> qa.py: placeholders, tags, numbers, line breaks, glossary checks
+    -> terms.py: candidate term cache for LLM/human review
     -> build/LLC_zh-CN/**/*.json
 ```
 
@@ -30,6 +31,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树 |
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行和术语命中 |
+| `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语 |
 | `limbus_translate/cli.py` | 命令行入口 |
 | `tests/fixtures/` | 最小 Localize JSON 测试夹具 |
 | `docs/research/` | 模型、流程、外部来源调研 |
@@ -41,7 +43,8 @@ LocalizeLimbusCompany checkout
 3. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
 4. `translate` 读取待译单元、术语缓存和 TM，按 JSON path 写入输出目录。
 5. `qa` 检查占位符、标签、术语、数字、换行和韩文残留。
-6. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+6. `terms extract` 从新增文本提取候选词/短语，进入 LLM 或人工二次筛选。
+7. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 ## 设计原则
 

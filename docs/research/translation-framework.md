@@ -53,8 +53,9 @@ LocalizeLimbusCompany checkout
 1. 每条源文本必须有稳定 `unit_id`、相对文件、JSON path、source hash、上下文信息和占位符列表。
 2. 只自动翻译新增和 changed hash；人工 reviewed / locked 译文不能被自动覆盖。
 3. 术语库使用 Paratranz 项目 `6860` API 作为主源，离线 CSV / JSON 导入作为兜底。
-4. 术语、变量、标签、换行、数字、颜色标签和 UI 长度必须进入自动 QA。
-5. 需要建立 500-1000 条 gold set，覆盖 UI、剧情对白、战斗文本、技能、人格、物品、世界观设定和变量句。
+4. 新增文本先进入术语候选缓存；heuristic 只能做召回，最终术语应由 LLM 和人工审校确认后再写入正式 termbase。
+5. 术语、变量、标签、换行、数字、颜色标签和 UI 长度必须进入自动 QA。
+6. 需要建立 500-1000 条 gold set，覆盖 UI、剧情对白、战斗文本、技能、人格、物品、世界观设定和变量句。
 
 ## 主要来源
 
