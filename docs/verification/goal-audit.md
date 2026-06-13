@@ -42,7 +42,7 @@ git -C build/real-localize apply --check artifacts/localize-9184302e/localize-tr
 ## 未完全验证项
 
 1. 当前环境没有 `DASHSCOPE_API_KEY`、`QWEN_API_KEY`、`OPENAI_API_KEY` 或 `OPENAI_COMPATIBLE_API_KEY`，且未安装 optional `openai` package；`PROVIDER=qwen-mt make check-provider-env` 已明确返回缺依赖和缺 key，所以尚未对 `qwen-mt` / `openai` provider 做真实 API 质量赛马。
-2. `make prepare-current-localize-review` 已能用 `PROVIDER=qwen-mt` 或 `PROVIDER=openai` 切换真实 provider，但需要先通过 `make check-provider-env`，才能产出真实模型候选和 request usage。
+2. `make prepare-current-localize-review` 已能用 `PROVIDER=qwen-mt` 或 `PROVIDER=openai` 切换真实 provider，并可设置 `LIMIT=1` 小样本控制成本；但需要先通过 `make check-provider-env`，才能产出真实模型候选和 request usage。
 3. 正式术语库仍不自动写回 Paratranz；当前只生成审校表和可导入 CSV，符合“不能自动污染正式术语库”的边界。
 
 ## 结论

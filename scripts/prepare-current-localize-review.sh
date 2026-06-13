@@ -14,6 +14,7 @@ LORE_INPUT=${LORE_INPUT:-docs/lore}
 TERMS_CACHE=${TERMS_CACHE:-$WORK_DIR/refined-terms-cache.json}
 PROVIDER=${PROVIDER:-dry-run}
 TERMS_PROVIDER=${TERMS_PROVIDER:-rules}
+LIMIT=${LIMIT:-}
 
 echo "Preparing a Localize review pack from KR to GitHub LLC_zh-CN target baseline."
 echo "Existing Chinese translations are preserved; only gap units are sent through the workflow."
@@ -54,6 +55,10 @@ workflow_args=(
   --terms-provider "$TERMS_PROVIDER"
 )
 
+if [[ -n "$LIMIT" ]]; then
+  workflow_args+=(--limit "$LIMIT")
+fi
+
 if [[ -n "$LOCALIZE_BASE" ]]; then
   workflow_args+=(
     --localize-repo "$LOCALIZE_REPO"
@@ -64,7 +69,7 @@ fi
 
 python3 -m limbus_translate.cli "${workflow_args[@]}"
 
-SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" python3 - <<'PY'
+SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" LIMIT="$LIMIT" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -76,6 +81,7 @@ payload = {
     "localize_commit": os.environ["RESOLVED_COMMIT"],
     "mode": "review-pack",
     "provider": os.environ["PROVIDER"],
+    "limit": int(os.environ["LIMIT"]) if os.environ.get("LIMIT") else None,
     "units": summary.get("units"),
     "translated": summary.get("translated"),
     "by_reason": summary.get("by_reason", {}),
