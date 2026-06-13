@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import re
@@ -30,6 +31,19 @@ class LoreMatch:
     source: str
     anchors: list[str]
     score: float
+
+
+@dataclass(frozen=True)
+class LoreVectorRecord:
+    entry: LoreEntry
+    vector: dict[str, float]
+
+
+@dataclass(frozen=True)
+class LoreIndex:
+    version: int
+    dimensions: int
+    records: list[LoreVectorRecord]
 
 
 def import_lore(path: Path) -> list[LoreEntry]:
@@ -73,6 +87,81 @@ def read_lore_cache(path: Path) -> list[LoreEntry]:
         return []
     rows = json.loads(path.read_text(encoding="utf-8"))
     return [_entry_from_row(row, default_source=str(path)) for row in rows if isinstance(row, dict)]
+
+
+def build_lore_index(entries: list[LoreEntry], *, dimensions: int = 256) -> LoreIndex:
+    records = [
+        LoreVectorRecord(entry=entry, vector=_hashed_vector(_entry_search_text(entry), dimensions=dimensions))
+        for entry in entries
+        if entry.title.strip() and entry.text.strip()
+    ]
+    return LoreIndex(version=1, dimensions=dimensions, records=records)
+
+
+def write_lore_index(path: Path, index: LoreIndex) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": index.version,
+        "dimensions": index.dimensions,
+        "records": [
+            {
+                "entry": asdict(record.entry),
+                "vector": record.vector,
+            }
+            for record in index.records
+        ],
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def read_lore_index(path: Path) -> LoreIndex:
+    if not path.exists():
+        return LoreIndex(version=1, dimensions=256, records=[])
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    dimensions = int(payload.get("dimensions", 256)) if isinstance(payload, dict) else 256
+    version = int(payload.get("version", 1)) if isinstance(payload, dict) else 1
+    records: list[LoreVectorRecord] = []
+    for row in payload.get("records", []) if isinstance(payload, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        entry_row = row.get("entry", {})
+        vector_row = row.get("vector", {})
+        if not isinstance(entry_row, dict) or not isinstance(vector_row, dict):
+            continue
+        vector = {str(key): float(value) for key, value in vector_row.items()}
+        records.append(LoreVectorRecord(entry=_entry_from_row(entry_row, default_source=str(path)), vector=vector))
+    return LoreIndex(version=version, dimensions=dimensions, records=records)
+
+
+def match_lore_index(
+    text: str,
+    index: LoreIndex,
+    *,
+    terms: list[GlossaryTerm] | None = None,
+    limit: int = 5,
+    max_text_length: int = 600,
+) -> list[LoreMatch]:
+    query = _norm(text)
+    query_vector = _hashed_vector(query, dimensions=index.dimensions)
+    matched_terms = [term for term in terms or [] if term.source and _norm(term.source) in query]
+    scored: list[tuple[float, LoreEntry]] = []
+    for record in index.records:
+        vector_score = _cosine_sparse(query_vector, record.vector)
+        score = _indexed_entry_score(query, record.entry, matched_terms, vector_score)
+        if score > 0:
+            scored.append((score, record.entry))
+    scored.sort(key=lambda item: (-item[0], item[1].source, item[1].title))
+    return [
+        LoreMatch(
+            title=entry.title,
+            text=_clip(entry.text, max_text_length),
+            tags=entry.tags,
+            source=entry.source,
+            anchors=entry.anchors,
+            score=round(score, 4),
+        )
+        for score, entry in scored[:limit]
+    ]
 
 
 def match_lore(
@@ -121,6 +210,22 @@ def _entry_score(query: str, entry: LoreEntry, terms: list[GlossaryTerm], idf: d
     similarity = _tfidf_similarity(query, lore_text, idf)
     if similarity >= 0.08:
         score += similarity
+    return score
+
+
+def _indexed_entry_score(query: str, entry: LoreEntry, terms: list[GlossaryTerm], vector_score: float) -> float:
+    score = 0.0
+    fields = [_norm(entry.title), *(_norm(tag) for tag in entry.tags), *(_norm(anchor) for anchor in entry.anchors)]
+    lore_text = _entry_search_text(entry)
+    for field in fields:
+        if field and field in query:
+            score += 2.0 if len(field) >= 2 else 0.5
+    for term in terms:
+        term_values = [term.source, term.target, *term.variants]
+        if any(_norm(value) and _norm(value) in lore_text for value in term_values):
+            score += 1.0
+    if vector_score >= 0.08:
+        score += vector_score
     return score
 
 
@@ -257,6 +362,29 @@ def _tfidf_similarity(left: str, right: str, idf: dict[str, float]) -> float:
 def _tfidf_vector(text: str, idf: dict[str, float]) -> dict[str, float]:
     counts = Counter(_char_ngrams(text))
     return {token: count * idf.get(token, 1.0) for token, count in counts.items()}
+
+
+def _hashed_vector(text: str, *, dimensions: int) -> dict[str, float]:
+    if dimensions <= 0:
+        return {}
+    counts: Counter[int] = Counter()
+    for token in _char_ngrams(text):
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        bucket = int.from_bytes(digest[:4], "big") % dimensions
+        sign = 1 if digest[4] % 2 == 0 else -1
+        counts[bucket] += sign
+    norm = math.sqrt(sum(value * value for value in counts.values()))
+    if not norm:
+        return {}
+    return {str(bucket): value / norm for bucket, value in sorted(counts.items()) if value}
+
+
+def _cosine_sparse(left: dict[str, float], right: dict[str, float]) -> float:
+    if not left or not right:
+        return 0.0
+    if len(left) > len(right):
+        left, right = right, left
+    return sum(value * right.get(key, 0.0) for key, value in left.items())
 
 
 def _char_ngrams(text: str) -> list[str]:

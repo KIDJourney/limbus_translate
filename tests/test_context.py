@@ -4,7 +4,7 @@ from pathlib import Path
 
 from limbus_translate.formatting import text_hash
 from limbus_translate.glossary import GlossaryTerm
-from limbus_translate.lore import LoreEntry
+from limbus_translate.lore import LoreEntry, build_lore_index
 from limbus_translate.memory import MemoryEntry
 from limbus_translate.providers import TranslationRequest
 from limbus_translate.scanner import scan_missing
@@ -112,6 +112,7 @@ def test_translate_provider_receives_structured_context() -> None:
             provider=provider,
             memory=memory,
             lore_entries=lore,
+            lore_index=build_lore_index(lore),
         )
 
     assert count == 1

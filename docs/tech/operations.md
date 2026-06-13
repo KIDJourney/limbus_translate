@@ -38,6 +38,15 @@ python3 -m limbus_translate.cli lore import \
   --input docs/lore \
   --output cache/lore/world.json
 
+python3 -m limbus_translate.cli lore index \
+  --lore cache/lore/world.json \
+  --output cache/lore/world-index.json
+
+python3 -m limbus_translate.cli lore search \
+  --index cache/lore/world-index.json \
+  --query "단테가 전투를 지휘한다" \
+  --output build/lore-search.json
+
 python3 -m limbus_translate.cli translate \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
@@ -45,6 +54,7 @@ python3 -m limbus_translate.cli translate \
   --glossary cache/glossary/paratranz-6860.json \
   --memory cache/tm/exact.json \
   --lore cache/lore/world.json \
+  --lore-index cache/lore/world-index.json \
   --state cache/state/units.json \
   --output build/LLC_zh-CN \
   --provider dry-run
@@ -127,7 +137,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值，并可用 `max_display_width` 按 East Asian Width 估算可见文本宽度。估算会忽略富文本标签，但不替代真实 UI 像素测量。
 
-`lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；翻译上下文召回同时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度。当前仍不是 embedding 或外部向量库检索。
+`lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点。`lore index` 会把 cache 编译为离线 hashed-vector sparse index；`lore search` 可独立验证召回结果；`translate --lore-index` 会优先用索引向 provider context 注入 lore 片段。当前索引是可离线验证的工程接口，不是外部 embedding 服务或专用向量数据库。
 
 `eval build-gold` 从已有 `KR` / `LLC_zh-CN` 参考译文中抽取 gold set，跳过空译文、同源残留和仍含韩文的目标文本；可用 `--limit` 控制规模。`eval sample-gold` 可按 `tag`、`risk` 或 `file` 分层抽样，支持固定 `--seed` 和 `--per-group`，用于构建更均衡的模型赛马样本。`eval review-pack` 导出人工审校 CSV 和结构化 JSONL；`eval apply-review` 只接收 `approved` 明确为真的行，并依赖原始 gold set 保留 glossary / context / tags 后写出 curated gold。`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`eval compare` 接受多个 `--provider label=spec`，输出每个 provider 的完整评估结果和按 pass rate / similarity 排序的 ranking；provider spec 支持 `dry-run`、`openai` 和 `openai:<model>`。`--fail-under` 可作为 CI 门禁；自动抽取和分层采样的 gold set 必须先经人工审校，curated gold 的覆盖范围仍决定模型评估可信度。
 

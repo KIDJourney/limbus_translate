@@ -31,13 +31,13 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
-| 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回和轻量 TF-IDF n-gram 相似召回初版 |
+| 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回、轻量 TF-IDF n-gram 和离线 hashed-vector index 初版 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 已完成 scan policy 配置层和 `dataList.id` 主键对齐初版；仍需按更多真实文件类型扩充规则库 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查和 MQM 风格分类 | 已完成初版；路径/risk 字符级 length policy 和估算显示宽度已完成，像素级 UI 容器测量未完成 |
 | Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成从参考译文构建 gold set、分层采样、人工审校回写、单 provider eval report 和多 provider compare report 初版；真实模型赛马未完成 |
-| 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM、基础 fuzzy TM 和轻量 lore 检索已完成；embedding 向量库和 gold set 调参未完成 |
+| 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM、基础 fuzzy TM 和离线 lore index 已完成；外部 embedding 向量库和 gold set 调参未完成 |
 
 ## 当前不做
 

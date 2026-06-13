@@ -7,7 +7,7 @@ from typing import Any
 
 from .glossary import GlossaryTerm
 from .json_paths import contains_hangul, get_path, is_translatable_path, iter_text_nodes
-from .lore import LoreEntry, LoreMatch, match_lore
+from .lore import LoreEntry, LoreIndex, LoreMatch, match_lore, match_lore_index
 from .memory import MemoryEntry
 from .scanner import TranslationUnit
 
@@ -63,11 +63,15 @@ def build_translation_context(
     matched_terms: list[GlossaryTerm],
     memory: dict[str, MemoryEntry],
     lore_entries: list[LoreEntry] | None = None,
+    lore_index: LoreIndex | None = None,
     neighbor_window: int = 2,
     max_memory_examples: int = 5,
     max_lore_entries: int = 5,
 ) -> TranslationContextBundle:
-    lore_matches = match_lore(unit.source_text, lore_entries or [], terms=matched_terms, limit=max_lore_entries)
+    if lore_index is not None:
+        lore_matches = match_lore_index(unit.source_text, lore_index, terms=matched_terms, limit=max_lore_entries)
+    else:
+        lore_matches = match_lore(unit.source_text, lore_entries or [], terms=matched_terms, limit=max_lore_entries)
     return TranslationContextBundle(
         relative_file=unit.relative_file,
         json_path=unit.json_path,

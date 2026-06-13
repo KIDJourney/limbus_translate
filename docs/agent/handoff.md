@@ -2,6 +2,29 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Lore 离线向量索引
+
+### 已完成
+
+- 新增 `LoreIndex` / `LoreVectorRecord`，用 deterministic hashed n-gram sparse vector 构建离线 lore 索引。
+- 新增 `lore index` CLI，从 `LoreEntry[]` cache 生成 `world-index.json`。
+- 新增 `lore search` CLI，可独立验证 index 对 query 的召回结果。
+- `translate` 新增 `--lore-index`，提供索引时 provider context 优先使用 index 召回 lore。
+- `make smoke` 已接入 lore import -> index -> search -> translate with lore index。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖 index roundtrip/search，context 测试通过 `build_lore_index` 注入 lore。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make smoke`：通过，生成 `build/lore-index.json`、`build/lore-search.json`，并用 `--lore-index` 执行 dry-run 翻译。
+- docs lore 小样本：`lore import/index/search` 通过，2 条 lore entry，搜索 `"단테가 전투를 지휘한다"` 命中 `단테`。
+- 真实 Localize checkout：scan 19 条、TM 92337 条，带 docs lore index dry-run translate limit 2 通过。
+
+### 风险
+
+- 当前是可离线验证的 hashed-vector 工程索引，不是外部 embedding 服务或专用向量数据库；检索质量仍需用 curated gold set 调参。
+
 ## 2026-06-13 — Scan policy 数据 adapter
 
 ### 已完成
@@ -190,7 +213,7 @@
 - 缺失 `dataList` record 写回：fixture 测试通过，`translate` 会 append 源 record 并替换待译字段。
 - `reviewed` / `locked` 状态：fixture 测试通过，锁定单元不会被 `translate` 覆盖。
 - 结构化上下文包：`tests.test_context.test_translate_provider_receives_structured_context` 和 `tests.test_context.test_context_includes_cross_file_similar_memory` 通过，provider 收到术语、邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段；真实 Localize checkout 带 `cache/tm/exact.json` dry-run translate 限制 3 条通过。
-- 世界观资料缓存：`tests.test_lore` 验证 Markdown / JSON 导入、cache roundtrip、anchors 召回和无 anchor 命中时的 TF-IDF n-gram 相似召回；`make smoke` 验证 `lore import --input tests/fixtures/lore` 和 `translate --lore build/lore.json` 链路。
+- 世界观资料缓存：`tests.test_lore` 验证 Markdown / JSON 导入、cache roundtrip、anchors 召回、无 anchor 命中时的 TF-IDF n-gram 相似召回，以及离线 lore index roundtrip/search；`make smoke` 验证 `lore import`、`lore index/search` 和 `translate --lore-index build/lore-index.json` 链路。
 - Gold set 评估：`tests.test_evaluation` 验证从 reference tree 构建 gold set、匹配 provider 全通过、错误 provider 报 similarity / format / terminology 问题、report 可落盘；`make smoke` 生成 `build/gold-set.json` 和 `build/eval-report.json`；真实 Localize checkout `eval build-gold --limit 1000` 通过，生成 1000 条，dry-run eval 1000 条报告落盘。
 - QA 简繁、长度风险、路径/risk 字符级 length policy 和 MQM category/summary：fixture 测试通过；真实 dry-run QA 小样本输出 19 条 accuracy 类 issue，报告字段落盘正常；`make smoke` 已验证 `qa --length-policy config/length-policy.sample.json` 可读。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
@@ -199,7 +222,7 @@
 
 - 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
 - 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体、路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类，但还没有像素级 UI 容器测量。
-- 当前 lore cache 已支持 anchors、术语和轻量 TF-IDF n-gram 相似召回，但还不是 embedding 向量库；真实世界观资料仍需整理为本地笔记或外部知识源导入。
+- 当前 lore cache 已支持 anchors、术语、轻量 TF-IDF n-gram 和离线 hashed-vector index 召回；真实世界观资料仍需整理为本地笔记或外部知识源导入，外部 embedding 服务/专用向量库和 gold set 调参还未完成。
 - 当前可从真实 reference tree 自动抽取 1000 条 gold set，但还没有人工精选、分层采样后的模型赛马基准。
 - 当前术语候选提取和 rules refiner 只是自动粗筛；OpenAI provider 也只能给建议译名，正式术语仍需人工确认后通过 `terms promote` 进入 termbase。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
@@ -207,7 +230,7 @@
 ### 下一步
 
 - 补像素级 UI 容器测量和具体容器策略。
-- 把本地 promoted glossary 与 Paratranz 或审校系统的正式 termbase 同步，并把 lore cache 升级为 embedding 向量库和经过 gold set 调参的相似句检索。
+- 把本地 promoted glossary 与 Paratranz 或审校系统的正式 termbase 同步，并把 lore index 升级到外部 embedding 服务或专用向量库，再用 curated gold set 调参。
 - 用 `eval build-gold --limit 1000` 生成真实候选 gold set，人工分层抽查后用 `eval run --provider openai --fail-under ...` 做模型赛马和 prompt 回归。
 
 ## 2026-06-09 — 文档骨架初版

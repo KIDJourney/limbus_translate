@@ -20,7 +20,15 @@ from .evaluation import (
     write_gold_review_pack,
 )
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
-from .lore import import_lore, read_lore_cache, write_lore_cache
+from .lore import (
+    build_lore_index,
+    import_lore,
+    match_lore_index,
+    read_lore_cache,
+    read_lore_index,
+    write_lore_cache,
+    write_lore_index,
+)
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
@@ -80,6 +88,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     memory = read_memory(Path(args.memory)) if args.memory else {}
     lore_entries = read_lore_cache(Path(args.lore)) if args.lore else []
+    lore_index = read_lore_index(Path(args.lore_index)) if args.lore_index else None
     states = read_state(Path(args.state)) if args.state else {}
     overlay_existing_target(source, target, output)
     count = translate_units(
@@ -91,6 +100,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
         provider=get_provider(args.provider),
         memory=memory,
         lore_entries=lore_entries,
+        lore_index=lore_index,
         states=states,
         limit=args.limit,
     )
@@ -109,6 +119,28 @@ def cmd_lore_import(args: argparse.Namespace) -> int:
     entries = import_lore(Path(args.input))
     write_lore_cache(Path(args.output), entries)
     print(f"lore import complete: {len(entries)} entries -> {args.output}")
+    return 0
+
+
+def cmd_lore_index(args: argparse.Namespace) -> int:
+    entries = read_lore_cache(Path(args.lore))
+    index = build_lore_index(entries, dimensions=args.dimensions)
+    write_lore_index(Path(args.output), index)
+    print(f"lore index complete: {len(index.records)} entries -> {args.output}")
+    print(json.dumps({"dimensions": index.dimensions, "entries": len(index.records)}, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def cmd_lore_search(args: argparse.Namespace) -> int:
+    index = read_lore_index(Path(args.index))
+    matches = match_lore_index(args.query, index, limit=args.limit)
+    payload = [asdict(match) for match in matches]
+    if args.output:
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.output).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"lore search complete: {len(matches)} matches -> {args.output}")
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -333,6 +365,7 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--glossary", default="")
     translate.add_argument("--memory", default="")
     translate.add_argument("--lore", default="")
+    translate.add_argument("--lore-index", default="")
     translate.add_argument("--state", default="")
     translate.add_argument("--output", default="build/LLC_zh-CN")
     translate.add_argument("--provider", default="dry-run")
@@ -353,6 +386,17 @@ def build_parser() -> argparse.ArgumentParser:
     lore_import.add_argument("--input", required=True, help="Markdown, JSON, JSONL, CSV, TXT, or a directory.")
     lore_import.add_argument("--output", default="cache/lore/world.json")
     lore_import.set_defaults(func=cmd_lore_import)
+    lore_index = lore_sub.add_parser("index")
+    lore_index.add_argument("--lore", default="cache/lore/world.json")
+    lore_index.add_argument("--output", default="cache/lore/world-index.json")
+    lore_index.add_argument("--dimensions", type=int, default=256)
+    lore_index.set_defaults(func=cmd_lore_index)
+    lore_search = lore_sub.add_parser("search")
+    lore_search.add_argument("--index", default="cache/lore/world-index.json")
+    lore_search.add_argument("--query", required=True)
+    lore_search.add_argument("--limit", type=int, default=5)
+    lore_search.add_argument("--output", default="")
+    lore_search.set_defaults(func=cmd_lore_search)
 
     qa = sub.add_parser("qa", help="Check translated output against source units.")
     qa.add_argument("--units", default="build/missing-units.json")

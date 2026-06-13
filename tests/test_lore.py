@@ -3,7 +3,16 @@ import tempfile
 from pathlib import Path
 
 from limbus_translate.glossary import GlossaryTerm
-from limbus_translate.lore import import_lore, match_lore, read_lore_cache, write_lore_cache
+from limbus_translate.lore import (
+    build_lore_index,
+    import_lore,
+    match_lore,
+    match_lore_index,
+    read_lore_cache,
+    read_lore_index,
+    write_lore_cache,
+    write_lore_index,
+)
 
 
 def make_term(source: str, target: str) -> GlossaryTerm:
@@ -119,4 +128,33 @@ def test_match_lore_uses_ngram_similarity_without_anchor_hit() -> None:
 
     matches = match_lore("반복 전투를 진행하고 자원을 회수한다.", entries)
     assert matches[0].title == "거울 던전"
+    assert matches[0].score > 0
+
+
+def test_lore_index_roundtrip_and_search() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "world.md"
+        cache = root / "world.json"
+        index_path = root / "world-index.json"
+        source.write_text(
+            "# 전투\n\n"
+            "关键词: 전투, battle\n\n"
+            "전투는 죄수들이 환상체와 맞서는 핵심 진행 단위다.\n\n"
+            "# 단테\n\n"
+            "关键词: 단테, 관리자\n\n"
+            "단테는 죄수들을 지휘하는 관리자다.\n",
+            encoding="utf-8",
+        )
+
+        entries = import_lore(source)
+        write_lore_cache(cache, entries)
+        index = build_lore_index(read_lore_cache(cache), dimensions=64)
+        write_lore_index(index_path, index)
+        loaded = read_lore_index(index_path)
+
+    matches = match_lore_index("환상체와 전투를 시작한다.", loaded)
+    assert loaded.dimensions == 64
+    assert len(loaded.records) == 2
+    assert matches[0].title == "전투"
     assert matches[0].score > 0
