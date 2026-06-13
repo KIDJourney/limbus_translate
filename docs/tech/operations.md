@@ -243,7 +243,9 @@ python3 -m limbus_translate.cli terms promote \
 
 `make check-provider-env` 会检查真实 provider 运行前提，不调用外部 API，也不会输出密钥内容。`PROVIDER=qwen-mt` 需要安装 `openai` Python package，并设置 `DASHSCOPE_API_KEY` 或 `QWEN_API_KEY`；`PROVIDER=openai` 需要 `OPENAI_API_KEY`。预检通过后，可用 `PROVIDER=qwen-mt make prepare-current-localize-review` 生成真实模型候选审校包。
 
-`make prepare-current-model-eval` 会 checkout 当前 LocalizeLimbusCompany、同步 Paratranz 术语，并从 GitHub `LLC_zh-CN` 现有中文译文构建 provider eval 的 gold set。它默认最多收集 `GOLD_LIMIT=1000` 条参考译文，按 `GOLD_GROUP_BY=tag` 每组抽 `GOLD_PER_GROUP=20` 条，输出 `build/current-model-eval/gold-set.json`、`gold-sample.json` 和 `gold-review/review.csv`。该命令不调用翻译 provider；审校者确认 `review.csv` 后，用 `eval apply-review` 生成 curated gold，再用 `eval compare` 做 qwen / openai 模型赛马。
+`make prepare-current-model-eval` 会 checkout 当前 LocalizeLimbusCompany、同步 Paratranz 术语，并从 GitHub `LLC_zh-CN` 现有中文译文构建 provider eval 的 gold set。它默认最多收集 `GOLD_LIMIT=1000` 条参考译文，按 `GOLD_GROUP_BY=tag` 每组抽 `GOLD_PER_GROUP=20` 条，输出 `build/current-model-eval/gold-set.json`、`gold-sample.json` 和 `gold-review/review.csv`。该命令不调用翻译 provider；审校者确认 `review.csv` 后，用 `make apply-current-model-review` 生成 curated gold，再用 `eval compare` 做 qwen / openai 模型赛马。
+
+`make apply-current-model-review` 会读取 `build/current-model-eval/gold-review/review.csv` 和 `gold-sample.json`，只把明确 approved 的 gold case 写入 `build/current-model-eval/gold-curated.json`。它不调用 provider，主要用于把人工确认的评估集固定下来，供 `make compare-current-models` 和后续 prompt/model 回归复用。
 
 `make compare-current-models` 会读取 `build/current-model-eval/gold-curated.json`，先对每个 provider 执行 `make check-provider-env` 同等预检，再运行 `eval compare`，输出 `build/current-model-eval/eval-compare-report.json`、`eval-candidates.json` 和 `eval-compare-requests.jsonl`。默认 `PROVIDERS=baseline=dry-run` 只用于确认评估链路；真实赛马可设置 `PROVIDERS='qwen=qwen-mt:qwen-mt-plus gpt=openai:gpt-4.1'`。如果只是验证管线且还没审完 gold，可临时设置 `ALLOW_UNCURATED=1` 使用 `gold-sample.json`。
 

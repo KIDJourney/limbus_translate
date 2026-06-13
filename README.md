@@ -70,11 +70,12 @@ make finalize-current-localize-review
 make prepare-current-model-eval
 ```
 
-该命令不会调用翻译 provider，只会从当前 LocalizeLimbusCompany `KR` / `LLC_zh-CN` 中构建 gold set、分层抽样，并导出 `build/current-model-eval/gold-review/review.csv` 供人工确认；确认后再用 `eval compare` 比较 qwen / openai 等 provider。
+该命令不会调用翻译 provider，只会从当前 LocalizeLimbusCompany `KR` / `LLC_zh-CN` 中构建 gold set、分层抽样，并导出 `build/current-model-eval/gold-review/review.csv` 供人工确认；确认后运行 `make apply-current-model-review` 生成 `gold-curated.json`，再用 `eval compare` 比较 qwen / openai 等 provider。
 
 确认 gold review 后可以一键比较 provider：
 
 ```bash
+make apply-current-model-review
 make compare-current-models
 
 PROVIDERS='qwen=qwen-mt:qwen-mt-plus gpt=openai:gpt-4.1' \
