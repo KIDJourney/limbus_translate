@@ -2,6 +2,30 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Workflow run 术语增量闭环
+
+### 已完成
+
+- `workflow run` 默认对本次 `missing-units` 执行术语候选提取、rules refine 和 term review pack 导出。
+- 工作目录新增 `term-candidates.json`、`refined-terms.json` 和 `term-review/`。
+- `summary.json` 新增 `terms` 统计和 `term_candidates` / `refined_terms` / `term_review_*` artifact 路径。
+- 新增 `--terms-provider`、`--terms-min-count`、`--terms-review-dir`、`--terms-include-not-term`、`--terms-min-confidence` 和 `--skip-terms` 参数。
+- `make smoke` 已断言 workflow 术语 artifact 和 fixture 候选数量。
+
+### 验证状态
+
+- fixture workflow：通过，3 条候选、3 条 refined、1 条 review pack 记录。
+- `make test`：通过。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，workflow summary 包含术语 artifact 和 `terms` 统计。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `git diff --check`：通过。
+- 真实 Localize checkout workflow：通过，全量扫描 19 条待译单元并用 `--limit 1` 控制翻译量，生成 19 条候选、19 条 refined、10 条 review pack 记录。
+
+### 风险
+
+- 默认 rules provider 只做离线粗筛，不会给出可靠译名；需要建议译名时应使用 `--terms-provider openai` 并继续走人工审校。
+
 ## 2026-06-13 — Workflow run 端到端更新链路
 
 ### 已完成

@@ -60,6 +60,8 @@ python3 -m limbus_translate.cli workflow run \
 
 `workflow run` 会串联 scan、TM 构建、可选 lore 导入/索引、同结构翻译输出和 QA，工作目录中会写出 `missing-units.json`、`tm.json`、可选 `lore.json` / `lore-index.json`、`qa-report.json` 和 `summary.json`。`summary.json` 记录待译单元数、实际写入数、缺译原因分布、QA 汇总和所有产物路径，适合作为一次上游更新的交接入口。
 
+默认情况下，`workflow run` 还会对本次新增文本执行术语候选提取和 rules 二次提炼，输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包；需要 LLM 给建议译名时可传 `--terms-provider openai`，需要只跑翻译链路时可传 `--skip-terms`。
+
 生成候选译文：
 
 ```bash

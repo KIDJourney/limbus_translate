@@ -27,12 +27,12 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 |---|---|---|
 | 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON | 已完成全量扫描、scan policy 和 changed-files 增量扫描初版 |
 | 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存 | 已完成初版 |
-| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；可导出 review pack，审校确认后可写入本地 glossary cache |
+| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；可导出 review pack，审校确认后可写入本地 glossary cache；`workflow run` 默认产出本次新增术语候选和审校包 |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
 | 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回、轻量 TF-IDF n-gram 和离线 hashed-vector index 初版 |
-| 端到端更新工作流 | 一条命令串联扫描、TM、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI 初版；正式上线仍需要人工审校与真实 provider 门禁 |
+| 端到端更新工作流 | 一条命令串联扫描、TM、术语候选审校包、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI 初版；正式上线仍需要人工审校与真实 provider 门禁 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 已完成 scan policy 配置层和 `dataList.id` 主键对齐初版；仍需按更多真实文件类型扩充规则库 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |

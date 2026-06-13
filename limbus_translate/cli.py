@@ -143,6 +143,34 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     states = read_state(Path(args.state)) if args.state else {}
 
+    terms_summary: dict[str, object] = {}
+    term_candidates_path: Path | None = None
+    refined_terms_path: Path | None = None
+    term_review_summary: dict[str, int | str] = {}
+    if not args.skip_terms:
+        candidates = extract_term_candidates(units, glossary, min_count=args.terms_min_count)
+        term_candidates_path = work_dir / "term-candidates.json"
+        write_candidates(term_candidates_path, candidates)
+        refined_terms = get_term_refiner(args.terms_provider).refine(candidates)
+        refined_terms_path = work_dir / "refined-terms.json"
+        write_refined_terms(refined_terms_path, refined_terms)
+        term_review_dir = Path(args.terms_review_dir) if args.terms_review_dir else work_dir / "term-review"
+        term_review_summary = write_term_review_pack(
+            term_review_dir,
+            refined_terms,
+            include_not_term=args.terms_include_not_term,
+            min_confidence=args.terms_min_confidence,
+        )
+        by_decision: dict[str, int] = {}
+        for term in refined_terms:
+            by_decision[term.decision] = by_decision.get(term.decision, 0) + 1
+        terms_summary = {
+            "candidates": len(candidates),
+            "refined": len(refined_terms),
+            "by_decision": dict(sorted(by_decision.items())),
+            "review": term_review_summary,
+        }
+
     lore_entries = read_lore_cache(Path(args.lore)) if args.lore else []
     lore_path = Path(args.lore) if args.lore else None
     if args.lore_input:
@@ -188,9 +216,15 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "qa_issues": len(issues),
         "by_reason": dict(sorted(by_reason.items())),
         "qa": qa_summary,
+        "terms": terms_summary,
         "artifacts": {
             "units": str(units_path),
             "tm": str(tm_path),
+            "term_candidates": str(term_candidates_path) if term_candidates_path else "",
+            "refined_terms": str(refined_terms_path) if refined_terms_path else "",
+            "term_review_csv": str(term_review_summary.get("review_csv", "")),
+            "term_review_jsonl": str(term_review_summary.get("review_jsonl", "")),
+            "term_review_paratranz_csv": str(term_review_summary.get("paratranz_csv", "")),
             "lore": str(lore_path) if lore_path else "",
             "lore_index": str(lore_index_path) if lore_index_path else "",
             "output": str(output),
@@ -488,6 +522,12 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--lore-dimensions", type=int, default=256)
     workflow_run.add_argument("--length-policy", default="")
     workflow_run.add_argument("--provider", default="dry-run")
+    workflow_run.add_argument("--terms-provider", default="rules")
+    workflow_run.add_argument("--terms-min-count", type=int, default=1)
+    workflow_run.add_argument("--terms-review-dir", default="")
+    workflow_run.add_argument("--terms-include-not-term", action="store_true")
+    workflow_run.add_argument("--terms-min-confidence", type=float, default=0.0)
+    workflow_run.add_argument("--skip-terms", action="store_true")
     workflow_run.add_argument("--limit", type=int, default=None)
     workflow_run.add_argument("--fail-on-error", action="store_true")
     workflow_run.set_defaults(func=cmd_workflow_run)

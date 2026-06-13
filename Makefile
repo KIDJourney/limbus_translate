@@ -111,7 +111,7 @@ smoke:
 		--lore-input tests/fixtures/lore \
 		--length-policy config/length-policy.sample.json \
 		--provider dry-run
-	python3 -c "import json; summary=json.load(open('build/workflow/summary.json', encoding='utf-8')); assert summary['units'] == 2; assert summary['translated'] == 2; assert summary['artifacts']['lore_index']; assert summary['qa_issues'] == 2; print('workflow summary schema ok')"
+	python3 -c "import json; summary=json.load(open('build/workflow/summary.json', encoding='utf-8')); assert summary['units'] == 2; assert summary['translated'] == 2; assert summary['artifacts']['lore_index']; assert summary['artifacts']['term_candidates']; assert summary['artifacts']['refined_terms']; assert summary['artifacts']['term_review_csv']; assert summary['terms']['candidates'] == 3; assert summary['terms']['refined'] == 3; assert summary['qa_issues'] == 2; print('workflow summary schema ok')"
 
 sync-glossary:
 	python3 -m limbus_translate.cli glossary sync-paratranz \

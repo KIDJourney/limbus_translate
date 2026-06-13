@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-13 | Workflow run 术语增量闭环 | `workflow run` 默认对本次新增待译单元执行术语候选提取、rules refine 和 term review pack 导出，并把术语统计与 artifact 路径写入 summary | fixture workflow；`make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout 全量扫描 + `--limit 1` workflow | 通过；fixture workflow 生成 3 条候选、3 条 refined、1 条 review pack 记录，summary 包含 `terms.by_decision` 和 `term_candidates` / `refined_terms` / `term_review_*` artifact；真实 checkout workflow 扫描 19 条待译单元、翻译 1 条，生成 19 条候选、19 条 refined 和 10 条 review pack 记录 |
 | 2026-06-13 | Workflow run 端到端更新链路 | 新增 `workflow run`，一条命令串联 changed-files 扫描、TM 构建、可选 lore 导入/index、同结构输出、QA 和 summary 产物 | fixture 最小 workflow；`make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout 指定 `KR/StoryData/3D102A.json` 小范围 workflow | 通过；fixture workflow 输出 2 条待译单元、2 条 dry-run 写入、2 条 `hangul_residue` warning，并生成 `missing-units.json`、`tm.json`、`lore.json`、`lore-index.json`、`qa-report.json`、`summary.json`；真实 checkout workflow 输出 1 条 `target_same_as_source`、1 条 dry-run 写入、1 条 QA warning，summary artifact 路径完整 |
 | 2026-06-13 | Changed-files 增量扫描 | 新增 `scan --changed-files`、变更清单归一化和 `include_files` 扫描过滤，支持用 `git diff --name-only` 收敛本次更新范围 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`git diff --check`；真实 Localize checkout 全量扫描 vs 指定单文件 changed-files 扫描 | 通过；直接测试覆盖只扫描变更文件、`KR/` / `LLC_zh-CN/` 路径归一化和非 JSON 跳过；fixture smoke 使用 `build/changed-files.txt` 仍生成 2 条；真实 checkout 全量 19 条，changed-files 指向 `KR/StoryData/3D102A.json` 时只输出该文件 1 条，unit_id 与全量子集一致 |
 | 2026-06-13 | Lore 离线向量索引 | 新增 `lore index`、`lore search`、`translate --lore-index` 和 `LoreIndex` hashed-vector cache，让世界观资料可预编译、可单独搜索、可注入 provider context | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make smoke`；docs lore `import/index/search`；真实 Localize checkout scan/TM/translate limit 2 with lore index | 通过；直接测试覆盖 index roundtrip/search，context 测试通过 `build_lore_index` 注入 lore；fixture smoke 生成 `build/lore-index.json` 和 `build/lore-search.json`，并用 `--lore-index` 翻译；docs lore 2 条 index/search 通过；真实扫描 19 条、TM 92337 条、带 lore index dry-run translate 2 条通过 |
@@ -24,7 +25,7 @@
 
 ## 当前风险
 
-1. `workflow run` 已能产出端到端 artifact 和 summary，但当前正式发布仍不能跳过人工审校；dry-run 产生的韩文残留 warning 是预期门禁信号，不是可发布译文。
+1. `workflow run` 已能产出端到端 artifact、术语审校包和 summary，但当前正式发布仍不能跳过人工审校；dry-run 产生的韩文残留 warning 是预期门禁信号，不是可发布译文。
 2. Changed-files 增量扫描只过滤文件范围，不判断文件内具体字段是否在本次 commit 中变化；同一 JSON 文件内仍需要 scan policy、QA 和人工审查兜底。
 3. Scan policy 已提供文件/path/key/source 内容级 include/exclude 配置，但 sample 规则仍只是初始规则库；新增文件类型仍需用真实 diff 和人工抽查校准。
 4. 缺失 `dataList` record 可以 append 源 record 并替换已处理字段，但同一 record 中未进入当前 units 的其他韩文字段仍可能需要后续扫描/QA 复审。

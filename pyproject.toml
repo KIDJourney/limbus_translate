@@ -2,7 +2,7 @@
 name = "limbus-translate"
 version = "0.1.0"
 description = "Incremental Korean-to-Chinese translation tooling for Limbus Company localization JSON."
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
