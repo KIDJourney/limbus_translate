@@ -9,8 +9,8 @@ from typing import Any
 
 from .formatting import profile_text, same_multiset
 from .glossary import GlossaryTerm, match_terms
-from .json_paths import contains_hangul, get_path
-from .scanner import TranslationUnit, load_json
+from .json_paths import contains_hangul, get_path, is_translatable_path, iter_text_nodes
+from .scanner import TranslationUnit, is_script_direction, load_json, should_suppress_same_source
 
 TRADITIONAL_CHARS = set("體臺與為國門風龍後復發幾無萬廣東關開時會來對個聲長見點說這裡")
 MQM_CATEGORY_BY_CODE = {
@@ -30,6 +30,7 @@ MQM_CATEGORY_BY_CODE = {
     "length_ratio_low": "design",
     "line_too_long": "design",
     "line_display_too_wide": "design",
+    "visible_hangul_residue": "accuracy",
 }
 
 
@@ -256,6 +257,54 @@ def qa_output(
             continue
         issues.extend(check_pair(unit, translated_text, glossary, length_policy=length_policy))
     return issues
+
+
+def audit_visible_hangul(
+    *,
+    output_root: Path,
+    glossary: list[GlossaryTerm],
+) -> tuple[list[QaIssue], dict[str, int]]:
+    issues: list[QaIssue] = []
+    summary = {
+        "total": 0,
+        "allowed_glossary": 0,
+        "suppressed_internal": 0,
+        "allowed_source_note": 0,
+        "warnings": 0,
+    }
+    allowed_targets = [term.target for term in glossary if term.target and contains_hangul(term.target)]
+    for output_file in sorted(output_root.rglob("*.json")):
+        relative_file = output_file.relative_to(output_root).as_posix()
+        data = load_json(output_file)
+        for text_node in iter_text_nodes(data):
+            if not contains_hangul(text_node.value) or not is_translatable_path(text_node.path):
+                continue
+            summary["total"] += 1
+            if any(target in text_node.value for target in allowed_targets):
+                summary["allowed_glossary"] += 1
+                continue
+            if should_suppress_same_source(relative_file, text_node.path_id, text_node.value) or is_script_direction(text_node.value):
+                summary["suppressed_internal"] += 1
+                continue
+            if is_source_note(text_node.value):
+                summary["allowed_source_note"] += 1
+                continue
+            summary["warnings"] += 1
+            issues.append(
+                QaIssue(
+                    "warning",
+                    "visible_hangul_residue",
+                    relative_file,
+                    text_node.path_id,
+                    "可见文本仍包含未解释的韩文字符",
+                    mqm_category("visible_hangul_residue"),
+                )
+            )
+    return issues, summary
+
+
+def is_source_note(text: str) -> bool:
+    return contains_hangul(text) and ("原文" in text or "发音" in text)
 
 
 def summarize_issues(issues: list[QaIssue]) -> dict[str, dict[str, int]]:

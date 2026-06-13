@@ -262,7 +262,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `state status` 会统计本次 units 中多少已经具备 reviewed / locked 且有译文的 ready 状态、多少仍 pending；传入 `--fail-if-pending` 可作为发布前门禁，避免未审校单元混入最终包。
 
-`workflow finalize` 会在不调用 provider 的前提下串联 `state status`、reviewed state 应用和最终 QA，输出发布候选目录以及 `state-status.json`、`qa-report.json`、`summary.json`。它适合人工审校完成后做发布前收口；`--fail-if-pending` 会拦截仍未审校的单元，`--fail-on-error` 会拦截 QA error。
+`workflow finalize` 会在不调用 provider 的前提下串联 `state status`、reviewed state 应用、最终 QA 和全输出可见韩文残留审计，输出发布候选目录以及 `state-status.json`、`qa-report.json`、`summary.json`。它适合人工审校完成后做发布前收口；`--fail-if-pending` 会拦截仍未审校的单元，`--fail-on-error` 会拦截 QA error。
 
 `tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 

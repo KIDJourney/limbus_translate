@@ -40,7 +40,7 @@ from .lore import (
 from .localize import make_translation_patch, prepare_localize_update, prepared_update_payload
 from .memory import build_memory, evaluate_memory_retrieval, read_memory, write_memory, write_memory_evaluation_report
 from .providers import get_provider
-from .qa import qa_output, read_length_policy, summarize_issues, write_issues
+from .qa import audit_visible_hangul, qa_output, read_length_policy, summarize_issues, write_issues
 from .review import (
     apply_translation_review_csv,
     merge_state_rows,
@@ -472,6 +472,8 @@ def cmd_workflow_finalize(args: argparse.Namespace) -> int:
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     length_policy = read_length_policy(Path(args.length_policy)) if args.length_policy else None
     issues = qa_output(units=finalize_units, output_root=output, glossary=glossary, length_policy=length_policy)
+    visible_hangul_issues, visible_hangul_summary = audit_visible_hangul(output_root=output, glossary=glossary)
+    issues.extend(visible_hangul_issues)
     qa_summary = summarize_issues(issues)
 
     state_status_path = work_dir / "state-status.json"
@@ -497,6 +499,7 @@ def cmd_workflow_finalize(args: argparse.Namespace) -> int:
         "qa_issues": len(issues),
         "state": state_summary,
         "qa": qa_summary,
+        "visible_hangul": visible_hangul_summary,
         "localize_patch": asdict(patch_result) if patch_result is not None else {},
         "artifacts": {
             "output": str(output),
