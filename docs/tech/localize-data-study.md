@@ -62,7 +62,8 @@ AS_OF: 2026-06-13
 python3 -m limbus_translate.cli scan \
   --source /tmp/limbus-translate-work/LocalizeLimbusCompany/KR \
   --target /tmp/limbus-translate-work/LocalizeLimbusCompany/LLC_zh-CN \
-  --output /tmp/limbus-real-missing.json
+  --output /tmp/limbus-real-missing.json \
+  --scan-policy config/scan-policy.sample.json
 ```
 
 结果：
@@ -73,6 +74,8 @@ scan complete: 19 units -> /tmp/limbus-real-missing-v4.json
 ```
 
 默认扫描已经过滤同源残留里的内部事件名、显示占位、无用 `subDesc`、战斗气泡元数据等噪声。剩余 19 条全部是 `StoryData/*.content` 高风险剧情/演出文本，仍需要人工判断哪些是要翻译的可见文本、哪些是演出指令。使用 `--include-internal` 可审计完整 263 条同源残留。
+
+`config/scan-policy.sample.json` 当前把这些文件类型经验沉淀为可配置规则：保留 `StoryData/*.content` 为高风险可见文本，排除常见无用 `desc`、内部 `name` 和战斗气泡元数据。2026-06-13 抽样验证中，默认扫描与 sample policy 扫描均输出 19 条且 `unit_id` 顺序一致，说明 sample policy 暂未扩大当前真实缺译集。
 
 ## Paratranz 术语源
 

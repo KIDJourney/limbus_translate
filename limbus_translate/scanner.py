@@ -29,6 +29,33 @@ class TranslationUnit:
     stable_key: str | None = None
 
 
+@dataclass(frozen=True)
+class ScanPolicyRule:
+    name: str
+    action: str
+    relative_file: str = ""
+    relative_file_prefix: str = ""
+    json_path: str = ""
+    json_path_suffix: str = ""
+    key: str = ""
+    source_contains: list[str] | None = None
+    risk: str = ""
+
+
+@dataclass(frozen=True)
+class ScanPolicy:
+    rules: list[ScanPolicyRule]
+
+    def decision_for(self, relative_file: str, json_path: str, key: str, source_text: str) -> ScanPolicyRule | None:
+        for rule in self.rules:
+            if scan_policy_rule_matches(rule, relative_file, json_path, key, source_text):
+                return rule
+        return None
+
+
+DEFAULT_SCAN_POLICY = ScanPolicy(rules=[])
+
+
 def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8-sig") as handle:
         return json.load(handle)
@@ -39,6 +66,62 @@ def dump_json(path: Path, data: Any) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+
+
+def read_scan_policy(path: Path) -> ScanPolicy:
+    if not path.exists():
+        return DEFAULT_SCAN_POLICY
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rules: list[ScanPolicyRule] = []
+    for row in payload.get("rules", []) if isinstance(payload, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        action = str(row.get("action", "")).strip().lower()
+        if action not in {"include", "exclude"}:
+            continue
+        raw_contains = row.get("source_contains", [])
+        if isinstance(raw_contains, str):
+            source_contains = [raw_contains]
+        elif isinstance(raw_contains, list):
+            source_contains = [str(item) for item in raw_contains if str(item)]
+        else:
+            source_contains = []
+        rules.append(
+            ScanPolicyRule(
+                name=str(row.get("name", "")),
+                action=action,
+                relative_file=str(row.get("relative_file", "")),
+                relative_file_prefix=str(row.get("relative_file_prefix", "")),
+                json_path=str(row.get("json_path", "")),
+                json_path_suffix=str(row.get("json_path_suffix", "")),
+                key=str(row.get("key", "")),
+                source_contains=source_contains,
+                risk=str(row.get("risk", "")),
+            )
+        )
+    return ScanPolicy(rules=rules)
+
+
+def scan_policy_rule_matches(
+    rule: ScanPolicyRule,
+    relative_file: str,
+    json_path: str,
+    key: str,
+    source_text: str,
+) -> bool:
+    if rule.relative_file and relative_file != rule.relative_file:
+        return False
+    if rule.relative_file_prefix and not relative_file.startswith(rule.relative_file_prefix):
+        return False
+    if rule.json_path and json_path != rule.json_path:
+        return False
+    if rule.json_path_suffix and not json_path.endswith(rule.json_path_suffix):
+        return False
+    if rule.key and key != rule.key:
+        return False
+    if rule.source_contains and not any(marker in source_text for marker in rule.source_contains):
+        return False
+    return True
 
 
 def build_unit_id(relative_file: str, json_path: str, source_text: str) -> str:
@@ -161,15 +244,25 @@ def should_suppress_same_source(relative_file: str, json_path: str, source_text:
     return False
 
 
-def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool = False) -> list[TranslationUnit]:
+def scan_missing(
+    source_root: Path,
+    target_root: Path,
+    *,
+    include_internal: bool = False,
+    scan_policy: ScanPolicy | None = None,
+) -> list[TranslationUnit]:
     units: list[TranslationUnit] = []
+    policy = scan_policy or DEFAULT_SCAN_POLICY
     for source_file in sorted(source_root.rglob("*.json")):
         relative = source_file.relative_to(source_root).as_posix()
         target_file = target_root / relative
         source_data = load_json(source_file)
         target_data = load_json(target_file) if target_file.exists() else None
         for text_node in iter_text_nodes(source_data):
-            if not is_translatable_path(text_node.path):
+            policy_rule = policy.decision_for(relative, text_node.path_id, text_node.key, text_node.value)
+            if policy_rule is not None and policy_rule.action == "exclude":
+                continue
+            if not is_translatable_path(text_node.path) and not (policy_rule is not None and policy_rule.action == "include"):
                 continue
             if not contains_hangul(text_node.value):
                 continue
@@ -201,6 +294,7 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                             reason = "target_path_not_text"
                 except (KeyError, IndexError, ValueError):
                     reason = "missing_target_path"
+            risk = policy_rule.risk if policy_rule is not None and policy_rule.risk else classify_risk(relative, text_node.path_id, text_node.value)
             source_profile = profile_text(text_node.value)
             units.append(
                 TranslationUnit(
@@ -216,7 +310,7 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                     tags=source_profile.tags,
                     numbers=source_profile.numbers,
                     line_breaks=source_profile.line_breaks,
-                    risk=classify_risk(relative, text_node.path_id, text_node.value),
+                    risk=risk,
                     source_json_path=text_node.path_id,
                     stable_key=build_stable_key(source_data, text_node.path),
                 )

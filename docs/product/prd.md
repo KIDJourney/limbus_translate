@@ -33,7 +33,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
 | 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回和轻量 TF-IDF n-gram 相似召回初版 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
-| 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 部分完成，需继续细化 |
+| 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 已完成 scan policy 配置层和 `dataList.id` 主键对齐初版；仍需按更多真实文件类型扩充规则库 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查和 MQM 风格分类 | 已完成初版；路径/risk 字符级 length policy 和估算显示宽度已完成，像素级 UI 容器测量未完成 |
 | Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成从参考译文构建 gold set、分层采样、人工审校回写、单 provider eval report 和多 provider compare report 初版；真实模型赛马未完成 |
@@ -59,3 +59,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 7. 作为术语维护者，我希望自动提炼结果能导出为可审校表格和 Paratranz 候选导入文件，而不是直接污染正式术语库。
 8. 作为术语维护者，我希望已审校通过的表格能被工具重新导入为本地术语缓存，后续翻译自动使用。
 9. 作为模型评估维护者，我希望自动抽样的 gold set 能导出给人工确认，并把确认后的样本回写为 curated gold，避免未审样本污染模型赛马结果。
+10. 作为维护者，我希望扫描规则能通过配置按文件、路径和内容过滤噪声，而不是每次发现内部字段都修改代码。

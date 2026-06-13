@@ -1,0 +1,29 @@
+{
+  "rules": [
+    {
+      "name": "keep story content as high-risk visible text",
+      "action": "include",
+      "relative_file_prefix": "StoryData/",
+      "json_path_suffix": ".content",
+      "risk": "high"
+    },
+    {
+      "name": "suppress unused Korean dummy descriptions",
+      "action": "exclude",
+      "key": "desc",
+      "source_contains": ["사용 안하는", "더미", "표시용"]
+    },
+    {
+      "name": "suppress internal Korean event names",
+      "action": "exclude",
+      "key": "name",
+      "source_contains": ["선택지", "이벤트", "사용하지않는", "번역x"]
+    },
+    {
+      "name": "suppress battle speech bubble metadata",
+      "action": "exclude",
+      "relative_file_prefix": "BattleSpeechBubbleDlg",
+      "json_path_suffix": ".desc"
+    }
+  ]
+}

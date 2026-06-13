@@ -24,7 +24,7 @@ from .lore import import_lore, read_lore_cache, write_lore_cache
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
-from .scanner import TranslationUnit, scan_missing, write_units
+from .scanner import TranslationUnit, read_scan_policy, scan_missing, write_units
 from .state import UnitState, read_state, write_state
 from .terms import (
     extract_term_candidates,
@@ -41,7 +41,13 @@ from .translator import overlay_existing_target, translate_units
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
-    units = scan_missing(Path(args.source), Path(args.target), include_internal=args.include_internal)
+    scan_policy = read_scan_policy(Path(args.scan_policy)) if args.scan_policy else None
+    units = scan_missing(
+        Path(args.source),
+        Path(args.target),
+        include_internal=args.include_internal,
+        scan_policy=scan_policy,
+    )
     write_units(Path(args.output), units)
     print(f"scan complete: {len(units)} units -> {args.output}")
     by_reason: dict[str, int] = {}
@@ -305,6 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--target", required=True, help="LLC_zh-CN directory")
     scan.add_argument("--output", default="build/missing-units.json")
     scan.add_argument("--include-internal", action="store_true", help="Include likely internal identifiers.")
+    scan.add_argument("--scan-policy", default="", help="Optional JSON policy for file/path-specific include/exclude rules.")
     scan.set_defaults(func=cmd_scan)
 
     glossary = sub.add_parser("glossary", help="Sync or import glossary terms.")

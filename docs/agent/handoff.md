@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Scan policy 数据 adapter
+
+### 已完成
+
+- 新增 `ScanPolicy` / `ScanPolicyRule`，扫描可按 `include` / `exclude` 规则调整文件、JSON path、key 和 source 内容范围。
+- `scan` 新增 `--scan-policy` 参数；不传时保持原有默认扫描行为。
+- 新增 `config/scan-policy.sample.json`，把 StoryData 内容保留、无用 desc、内部 name 和 BattleSpeechBubbleDlg 元数据过滤沉淀为配置。
+- `make smoke` 已使用 sample policy 执行 fixture 扫描。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖非默认文本路径 include、噪声路径 exclude 和 risk 覆盖。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，带 sample policy 的 fixture 扫描仍生成 2 条待译单元。
+- 真实 Localize checkout：默认扫描与 `--scan-policy config/scan-policy.sample.json` 均输出 19 条 `target_same_as_source`，且 `unit_id` 顺序一致。
+
+### 风险
+
+- sample policy 只是把当前观察到的噪声规则配置化；更多文件类型仍需要结合真实 diff 和人工抽查继续补规则。
+
 ## 2026-06-13 — Gold set 人工审校回写
 
 ### 已完成

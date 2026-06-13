@@ -29,7 +29,7 @@ LocalizeLimbusCompany checkout
 | 路径 | 职责 |
 |---|---|
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
-| `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
+| `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy 按文件/path/key include 或 exclude |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，并按 anchors、术语和 TF-IDF 字符 n-gram 相似度召回 lore 片段 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
@@ -46,7 +46,7 @@ LocalizeLimbusCompany checkout
 
 ## 数据流
 
-1. `scan` 读取 `KR` 与 `LLC_zh-CN`，输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
+1. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
 3. `lore import` 把世界观笔记导成 `cache/lore/world.json`，供翻译时按源文、术语和 anchors 召回。
 4. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
@@ -64,6 +64,7 @@ LocalizeLimbusCompany checkout
 | 原则 | 含义 |
 |---|---|
 | 语义 diff 优先 | 不做文本行 diff；以 JSON path、唯一记录 id、字段类型和 source hash 为核心 |
+| Adapter 可配置 | 文件类型、路径和内部字段噪声先用 scan policy 沉淀，减少每次改代码才能调扫描范围 |
 | 格式不破坏 | 保留 JSON 结构、占位符、标签、换行和目标文件路径 |
 | 术语先行 | 翻译前注入 Paratranz / 本地术语，翻译后做术语命中 QA |
 | 上下文显式化 | Provider 接收 JSON context，而不是隐式依赖单句 prompt |
