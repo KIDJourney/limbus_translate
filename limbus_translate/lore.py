@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -83,9 +85,10 @@ def match_lore(
 ) -> list[LoreMatch]:
     query = _norm(text)
     matched_terms = [term for term in terms or [] if term.source and _norm(term.source) in query]
+    idf = _corpus_idf([_entry_search_text(entry) for entry in entries])
     scored: list[tuple[float, LoreEntry]] = []
     for entry in entries:
-        score = _entry_score(query, entry, matched_terms)
+        score = _entry_score(query, entry, matched_terms, idf)
         if score > 0:
             scored.append((score, entry))
     scored.sort(key=lambda item: (-item[0], item[1].source, item[1].title))
@@ -102,10 +105,10 @@ def match_lore(
     ]
 
 
-def _entry_score(query: str, entry: LoreEntry, terms: list[GlossaryTerm]) -> float:
+def _entry_score(query: str, entry: LoreEntry, terms: list[GlossaryTerm], idf: dict[str, float]) -> float:
     score = 0.0
     fields = [_norm(entry.title), *(_norm(tag) for tag in entry.tags), *(_norm(anchor) for anchor in entry.anchors)]
-    lore_text = _norm(f"{entry.title} {' '.join(entry.tags)} {' '.join(entry.anchors)} {entry.text}")
+    lore_text = _entry_search_text(entry)
     for field in fields:
         if field and field in query:
             score += 2.0 if len(field) >= 2 else 0.5
@@ -115,6 +118,9 @@ def _entry_score(query: str, entry: LoreEntry, terms: list[GlossaryTerm]) -> flo
             score += 1.0
     if _shared_token_score(query, lore_text) >= 2:
         score += 0.5
+    similarity = _tfidf_similarity(query, lore_text, idf)
+    if similarity >= 0.08:
+        score += similarity
     return score
 
 
@@ -219,6 +225,47 @@ def _shared_token_score(left: str, right: str) -> int:
     left_tokens = {token for token in re.split(r"\s+", left) if len(token) >= 2}
     right_tokens = {token for token in re.split(r"\s+", right) if len(token) >= 2}
     return len(left_tokens & right_tokens)
+
+
+def _entry_search_text(entry: LoreEntry) -> str:
+    return _norm(f"{entry.title} {' '.join(entry.tags)} {' '.join(entry.anchors)} {entry.text}")
+
+
+def _corpus_idf(texts: list[str]) -> dict[str, float]:
+    document_count = len(texts)
+    document_frequency: Counter[str] = Counter()
+    for text in texts:
+        document_frequency.update(set(_char_ngrams(text)))
+    if document_count == 0:
+        return {}
+    return {token: math.log((document_count + 1) / (count + 1)) + 1.0 for token, count in document_frequency.items()}
+
+
+def _tfidf_similarity(left: str, right: str, idf: dict[str, float]) -> float:
+    left_vector = _tfidf_vector(left, idf)
+    right_vector = _tfidf_vector(right, idf)
+    if not left_vector or not right_vector:
+        return 0.0
+    dot = sum(weight * right_vector.get(token, 0.0) for token, weight in left_vector.items())
+    left_norm = math.sqrt(sum(weight * weight for weight in left_vector.values()))
+    right_norm = math.sqrt(sum(weight * weight for weight in right_vector.values()))
+    if not left_norm or not right_norm:
+        return 0.0
+    return dot / (left_norm * right_norm)
+
+
+def _tfidf_vector(text: str, idf: dict[str, float]) -> dict[str, float]:
+    counts = Counter(_char_ngrams(text))
+    return {token: count * idf.get(token, 1.0) for token, count in counts.items()}
+
+
+def _char_ngrams(text: str) -> list[str]:
+    compact = re.sub(r"[^\w\uac00-\ud7af\u4e00-\u9fff]+", "", text.lower())
+    grams: list[str] = []
+    for size in (2, 3):
+        if len(compact) >= size:
+            grams.extend(compact[index : index + size] for index in range(0, len(compact) - size + 1))
+    return grams
 
 
 def _clip(text: str, limit: int) -> str:

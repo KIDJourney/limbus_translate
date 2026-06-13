@@ -89,7 +89,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值。当前示例是字符级策略，不替代真实 UI 像素测量。
 
-`lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；当前是关键词召回，不是向量检索。
+`lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；翻译上下文召回同时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度。当前仍不是 embedding 或外部向量库检索。
 
 `eval build-gold` 从已有 `KR` / `LLC_zh-CN` 参考译文中抽取 gold set，跳过空译文、同源残留和仍含韩文的目标文本；可用 `--limit` 控制规模。`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`--fail-under` 可作为 CI 门禁；自动抽取的 gold set 仍需要人工抽查和分层采样，不代表最终模型质量。
 

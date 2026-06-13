@@ -89,3 +89,34 @@ def test_import_lore_directory_skips_readme() -> None:
         entries = import_lore(root)
 
     assert [entry.title for entry in entries] == ["단테"]
+
+
+def test_match_lore_uses_ngram_similarity_without_anchor_hit() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "world.json"
+        source.write_text(
+            json.dumps(
+                {
+                    "entries": [
+                        {
+                            "title": "거울 던전",
+                            "text": "거울 던전은 반복 전투와 자원 회수를 다루는 공간이다.",
+                            "anchors": ["Mirror Dungeon"],
+                        },
+                        {
+                            "title": "단테",
+                            "text": "시계 머리를 가진 관리자.",
+                            "anchors": ["관리자"],
+                        },
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        entries = import_lore(source)
+
+    matches = match_lore("반복 전투를 진행하고 자원을 회수한다.", entries)
+    assert matches[0].title == "거울 던전"
+    assert matches[0].score > 0

@@ -31,7 +31,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
-| `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，并按源文和术语命中召回 lore 片段 |
+| `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，并按 anchors、术语和 TF-IDF 字符 n-gram 相似度召回 lore 片段 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
 | `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段 |
 | `limbus_translate/evaluation.py` | 从参考译文构建 gold set；调用 provider，输出相似度、格式一致性、术语命中和 pass rate 报告 |
@@ -57,7 +57,7 @@ LocalizeLimbusCompany checkout
 9. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
 10. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
-`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存；这还不是向量检索或经过 gold set 调参的完整 RAG。
+`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存，并使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；这还不是 embedding 向量库或经过 gold set 调参的完整 RAG。
 
 ## 设计原则
 
