@@ -34,6 +34,9 @@ make sync-glossary
 # 生成待审包：扫描 GitHub LLC_zh-CN 缺口、生成术语候选和翻译审校 CSV
 make prepare-current-localize-review
 
+# 审完术语 CSV 后，写入本地 reviewed glossary，并合成 active glossary
+make apply-current-term-review
+
 # 真实 provider 首跑前先做环境预检；不会调用外部 API，也不会输出密钥
 PROVIDER=qwen-mt make check-provider-env
 
@@ -79,6 +82,8 @@ make compare-current-models
 ```
 
 默认 provider 是 `baseline=dry-run`，用于验证评估管线；真实 provider 会先执行环境预检。
+
+术语审校表 `build/current-review/term-review/review.csv` 里填入 `target` 并把 `approved` 标为 `yes` 后，运行 `make apply-current-term-review` 会更新 `cache/glossary/local-reviewed.json` 和 `cache/glossary/active.json`。这两个 cache 默认不提交，用于下一轮本地翻译复用；需要在正式术语库沉淀时，再从审校 CSV 或 active glossary 导入 Paratranz。
 
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 

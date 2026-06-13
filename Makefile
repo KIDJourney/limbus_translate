@@ -1,4 +1,4 @@
-.PHONY: validate-docs test smoke sync-glossary check-provider-env prepare-current-localize-review finalize-current-localize-review prepare-current-model-eval compare-current-models reproduce-current-localize publish-current-localize-artifact
+.PHONY: validate-docs test smoke sync-glossary check-provider-env prepare-current-localize-review finalize-current-localize-review apply-current-term-review prepare-current-model-eval compare-current-models reproduce-current-localize publish-current-localize-artifact
 
 validate-docs:
 	./scripts/validate-docs.sh
@@ -213,6 +213,9 @@ prepare-current-localize-review:
 
 finalize-current-localize-review:
 	bash scripts/finalize-current-localize-review.sh
+
+apply-current-term-review:
+	bash scripts/apply-current-term-review.sh
 
 prepare-current-model-eval:
 	bash scripts/prepare-current-model-eval.sh
