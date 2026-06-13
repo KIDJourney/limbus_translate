@@ -2,6 +2,26 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Source-baseline path 级增量扫描
+
+### 已完成
+
+- 新增 `collect_changed_source_paths`，可比较上一版 `KR` 与当前 `KR`，按 JSON path 和 `dataList[id=...]` 稳定键找出源文新增/变化路径。
+- `scan` 新增 `--source-baseline`，传入后只扫描源文变化路径。
+- `workflow run` 新增 `--source-baseline`，summary 记录 baseline 路径、changed files 数和 changed paths 数。
+- 当源文变化但目标已有旧中文时，扫描结果会保留该单元并标记 `reason=source_changed`，避免旧译文被误认为已完成。
+- `make smoke` 新增 fixture，验证 `source_changed` CLI scan。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖源文变化、目标已有旧中文、同文件未变化空目标不进入本次 source-baseline 扫描。
+- `make smoke`：通过，生成 `build/source-changed-units.json`，断言 `reason=source_changed` 且 `target_text=旧译文。`。
+- 真实 Localize checkout：用 KR RAW commit `82794094^..82794094` 构造 baseline，识别 5 个源文变化文件、549 个变化文本路径；scan 输出 549 条 `source_changed`。
+
+### 风险
+
+- `--source-baseline` 需要上一个版本的 `KR` 目录；只传 `--changed-files` 时仍是文件级过滤。
+
 ## 2026-06-13 — 候选译文缓存与 translation trace
 
 ### 已完成

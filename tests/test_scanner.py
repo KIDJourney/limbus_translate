@@ -2,7 +2,14 @@ from pathlib import Path
 import json
 import tempfile
 
-from limbus_translate.scanner import ScanPolicy, ScanPolicyRule, normalize_changed_file, read_changed_files, scan_missing
+from limbus_translate.scanner import (
+    ScanPolicy,
+    ScanPolicyRule,
+    collect_changed_source_paths,
+    normalize_changed_file,
+    read_changed_files,
+    scan_missing,
+)
 
 
 def test_scan_missing_detects_korean_target_and_blank_target() -> None:
@@ -176,6 +183,62 @@ def test_scan_can_limit_to_changed_files() -> None:
 
     assert {unit.relative_file for unit in all_units} == {"Changed.json", "Unchanged.json"}
     assert [unit.relative_file for unit in changed_units] == ["Changed.json"]
+
+
+def test_scan_can_limit_to_changed_source_paths_and_marks_source_changed() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        baseline = root / "KR_before"
+        source = root / "KR"
+        target = root / "LLC_zh-CN"
+        baseline.mkdir()
+        source.mkdir()
+        target.mkdir()
+        (baseline / "Sample.json").write_text(
+            json.dumps(
+                {
+                    "dataList": [
+                        {"id": 1, "desc": "예전 문장입니다."},
+                        {"id": 2, "desc": "그대로인 문장입니다."},
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        (source / "Sample.json").write_text(
+            json.dumps(
+                {
+                    "dataList": [
+                        {"id": 1, "desc": "새로운 문장입니다."},
+                        {"id": 2, "desc": "그대로인 문장입니다."},
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        (target / "Sample.json").write_text(
+            json.dumps(
+                {
+                    "dataList": [
+                        {"id": 1, "desc": "旧译文。"},
+                        {"id": 2, "desc": ""},
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        changed_paths = collect_changed_source_paths(baseline, source)
+        units = scan_missing(source, target, include_source_paths=changed_paths)
+
+    assert changed_paths == {"Sample.json": {"dataList.0.desc"}}
+    assert len(units) == 1
+    assert units[0].json_path == "dataList.0.desc"
+    assert units[0].target_text == "旧译文。"
+    assert units[0].reason == "source_changed"
 
 
 def test_read_changed_files_normalizes_repo_paths() -> None:

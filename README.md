@@ -32,18 +32,23 @@ make sync-glossary
 
 ```bash
 git -C /path/to/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > build/changed-files.txt
+mkdir -p build/source-baseline
+git -C /path/to/LocalizeLimbusCompany archive HEAD~1 KR | tar -x -C build/source-baseline
 
 python3 -m limbus_translate.cli scan \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output build/missing-units.json \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt
+  --changed-files build/changed-files.txt \
+  --source-baseline build/source-baseline/KR
 ```
 
 `--scan-policy` 接受 JSON 规则文件，支持按 `relative_file`、`relative_file_prefix`、`json_path`、`json_path_suffix`、`key` 和 `source_contains` 做 `include` / `exclude`。这用于把特定文件里的可见文本路径纳入扫描，也用于过滤内部事件名、显示占位和无用文本等噪声；不传该参数时仍使用内置默认规则。
 
 `--changed-files` 接受 `git diff --name-only` 这类换行分隔清单，只扫描清单中涉及的 JSON 相对文件；`KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 都会归一化为同一个相对路径，非 JSON 行会被忽略。不传该参数时执行全量扫描。
+
+`--source-baseline` 接受上一个版本的 `KR` 目录，用于 JSON path 级源文 diff。传入后，扫描只处理当前源文中相对 baseline 新增或变化的文本；如果目标里已有旧中文，也会以 `source_changed` 原因重新进入待译列表。
 
 一键执行本次更新链路：
 
@@ -55,6 +60,7 @@ python3 -m limbus_translate.cli workflow run \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
   --changed-files build/changed-files.txt \
+  --source-baseline build/source-baseline/KR \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --length-policy config/length-policy.sample.json \

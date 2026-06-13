@@ -39,7 +39,14 @@ from .review import (
     read_state_rows,
     write_translation_review_pack,
 )
-from .scanner import TranslationUnit, read_changed_files, read_scan_policy, scan_missing, write_units
+from .scanner import (
+    TranslationUnit,
+    collect_changed_source_paths,
+    read_changed_files,
+    read_scan_policy,
+    scan_missing,
+    write_units,
+)
 from .state import UnitState, read_state, write_state
 from .terms import (
     extract_term_candidates,
@@ -63,12 +70,23 @@ def cmd_scan(args: argparse.Namespace) -> int:
     include_files = (
         read_changed_files(Path(args.changed_files), source_root=source, target_root=target) if args.changed_files else None
     )
+    include_source_paths = (
+        collect_changed_source_paths(
+            Path(args.source_baseline),
+            source,
+            scan_policy=scan_policy,
+            include_files=include_files,
+        )
+        if args.source_baseline
+        else None
+    )
     units = scan_missing(
         source,
         target,
         include_internal=args.include_internal,
         scan_policy=scan_policy,
         include_files=include_files,
+        include_source_paths=include_source_paths,
     )
     write_units(Path(args.output), units)
     print(f"scan complete: {len(units)} units -> {args.output}")
@@ -163,12 +181,23 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     include_files = (
         read_changed_files(Path(args.changed_files), source_root=source, target_root=target) if args.changed_files else None
     )
+    include_source_paths = (
+        collect_changed_source_paths(
+            Path(args.source_baseline),
+            source,
+            scan_policy=scan_policy,
+            include_files=include_files,
+        )
+        if args.source_baseline
+        else None
+    )
     units = scan_missing(
         source,
         target,
         include_internal=args.include_internal,
         scan_policy=scan_policy,
         include_files=include_files,
+        include_source_paths=include_source_paths,
     )
     units_path = work_dir / "missing-units.json"
     write_units(units_path, units)
@@ -286,6 +315,11 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "translated": translated,
         "qa_issues": len(issues),
         "by_reason": dict(sorted(by_reason.items())),
+        "source_baseline": {
+            "path": args.source_baseline,
+            "changed_files": len(include_source_paths or {}),
+            "changed_paths": sum(len(paths) for paths in (include_source_paths or {}).values()),
+        },
         "qa": qa_summary,
         "glossary_audit": glossary_audit_summary,
         "terms": terms_summary,
@@ -590,6 +624,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--include-internal", action="store_true", help="Include likely internal identifiers.")
     scan.add_argument("--scan-policy", default="", help="Optional JSON policy for file/path-specific include/exclude rules.")
     scan.add_argument("--changed-files", default="", help="Optional newline-delimited changed file list from git diff --name-only.")
+    scan.add_argument("--source-baseline", default="", help="Optional previous KR directory for JSON path-level source diff.")
     scan.set_defaults(func=cmd_scan)
 
     glossary = sub.add_parser("glossary", help="Sync or import glossary terms.")
@@ -634,6 +669,7 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--work-dir", default="build/workflow")
     workflow_run.add_argument("--scan-policy", default="")
     workflow_run.add_argument("--changed-files", default="")
+    workflow_run.add_argument("--source-baseline", default="")
     workflow_run.add_argument("--include-internal", action="store_true")
     workflow_run.add_argument("--glossary", default="")
     workflow_run.add_argument("--state", default="")

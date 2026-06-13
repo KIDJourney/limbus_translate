@@ -14,6 +14,8 @@
 | Gold sample | 从 Gold set 按 tag、risk 或 file 分层抽样得到的较小评估集，用于减少样本偏置 |
 | Eval comparison | 在同一 Gold set 上并排评估多个 provider/model，并按 pass rate 和 similarity 排名 |
 | TranslationUnit | 本项目内部待译单元，包含文件、JSON path、源文、目标文和缺译原因 |
+| Source baseline | 上一版本的 `KR` 目录，用于和当前 `KR` 做 JSON path 级源文变化比较 |
+| `source_changed` | 扫描原因之一，表示源文相对 baseline 已变化，即使目标已有旧中文也需要重新翻译或审校 |
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
 | Candidate translation cache | Provider 候选译文缓存；key 绑定 provider、source hash、context hash 和 glossary hash，避免上下文变化时误复用 |
 | Translation trace | 每条译文处理的 JSONL provenance 记录，区分 `state:*`、`memory`、`candidate_cache` 和 `provider` |

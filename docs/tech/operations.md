@@ -16,13 +16,16 @@ rg "TODO|待确认|阻塞" docs
 
 ```bash
 git -C /path/to/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > build/changed-files.txt
+mkdir -p build/source-baseline
+git -C /path/to/LocalizeLimbusCompany archive HEAD~1 KR | tar -x -C build/source-baseline
 
 python3 -m limbus_translate.cli scan \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output build/missing-units.json \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt
+  --changed-files build/changed-files.txt \
+  --source-baseline build/source-baseline/KR
 
 python3 -m limbus_translate.cli glossary sync-paratranz \
   --project-id 6860 \
@@ -62,6 +65,7 @@ python3 -m limbus_translate.cli workflow run \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
   --changed-files build/changed-files.txt \
+  --source-baseline build/source-baseline/KR \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --length-policy config/length-policy.sample.json \
@@ -164,9 +168,11 @@ python3 -m limbus_translate.cli terms promote \
 
 `scan --changed-files` 接受 `git diff --name-only` 生成的换行分隔文件清单，只扫描涉及的 JSON 相对文件。路径可以是仓库根目录形式的 `KR/Foo.json` / `LLC_zh-CN/Foo.json`，也可以是语言目录内的 `Foo.json`；非 JSON 文件会被忽略。该参数用于 RAW/GTP 更新后把扫描范围收敛到本次变更，减少全量扫描和人工审查成本。
 
+`scan --source-baseline` 接受上一个版本的 `KR` 目录，按 JSON path 和 `dataList[id=...]` 稳定键比较源文变化。传入后，scan 只处理新增或变化的源文路径；如果目标已有旧中文，会输出 `source_changed`，避免只靠“目标为空/目标仍是韩文”漏掉需要重译的旧译文。
+
 `glossary audit` 会读取本地 glossary cache，检查空源文、空译名、同源多译名冲突、源文疑似非韩文、译文韩文残留、译文等于源文和重复 source/target pair。`--fail-on error` 可把严重术语问题作为自动化门禁；`--fail-on warning` 更适合正式发布前的人工清理阶段。
 
-`workflow run` 是一次上游更新的默认串联入口：先按 scan policy 和 changed-files 生成 `missing-units.json`，再构建 `tm.json`；如果传入 `--glossary`，会写出 `glossary-audit.json` 并在 summary 暴露术语库问题分布；随后对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，再 overlay 现有目标树、执行翻译、写出 `translation-candidates.json` 与 `translation-trace.jsonl`、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`--candidate-cache` 可指向持久候选缓存；不传时使用工作目录内的 `translation-candidates.json`。`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
+`workflow run` 是一次上游更新的默认串联入口：先按 scan policy、changed-files 和可选 source-baseline 生成 `missing-units.json`，再构建 `tm.json`；如果传入 `--glossary`，会写出 `glossary-audit.json` 并在 summary 暴露术语库问题分布；随后对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，再 overlay 现有目标树、执行翻译、写出 `translation-candidates.json` 与 `translation-trace.jsonl`、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`--candidate-cache` 可指向持久候选缓存；不传时使用工作目录内的 `translation-candidates.json`。`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
 
 `translate --candidate-cache` 会读取并更新 provider 候选缓存。缓存 key 绑定 provider、source hash、context hash 和 glossary hash，所以术语或 lore 上下文变化后不会误复用旧译文。`translate --trace` 输出 JSONL，每行记录 `translation_source`，用于区分 state、TM、candidate cache 和 provider。
 

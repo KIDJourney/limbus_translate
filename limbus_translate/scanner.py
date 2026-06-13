@@ -128,6 +128,44 @@ def normalize_changed_file(value: str, *, source_root: Path, target_root: Path) 
     return path.lstrip("/")
 
 
+def collect_changed_source_paths(
+    baseline_root: Path,
+    source_root: Path,
+    *,
+    scan_policy: ScanPolicy | None = None,
+    include_files: set[str] | None = None,
+) -> dict[str, set[str]]:
+    changed: dict[str, set[str]] = {}
+    policy = scan_policy or DEFAULT_SCAN_POLICY
+    for source_file in sorted(source_root.rglob("*.json")):
+        relative = source_file.relative_to(source_root).as_posix()
+        if include_files is not None and relative not in include_files:
+            continue
+        source_data = load_json(source_file)
+        baseline_file = baseline_root / relative
+        baseline_index = source_text_index(load_json(baseline_file)) if baseline_file.exists() else {}
+        for text_node in iter_text_nodes(source_data):
+            policy_rule = policy.decision_for(relative, text_node.path_id, text_node.key, text_node.value)
+            if policy_rule is not None and policy_rule.action == "exclude":
+                continue
+            if not is_translatable_path(text_node.path) and not (policy_rule is not None and policy_rule.action == "include"):
+                continue
+            if not contains_hangul(text_node.value):
+                continue
+            key = build_stable_key(source_data, text_node.path) or text_node.path_id
+            if baseline_index.get(key) != text_node.value:
+                changed.setdefault(relative, set()).add(text_node.path_id)
+    return changed
+
+
+def source_text_index(data: Any) -> dict[str, str]:
+    index: dict[str, str] = {}
+    for text_node in iter_text_nodes(data):
+        key = build_stable_key(data, text_node.path) or text_node.path_id
+        index[key] = text_node.value
+    return index
+
+
 def scan_policy_rule_matches(
     rule: ScanPolicyRule,
     relative_file: str,
@@ -277,6 +315,7 @@ def scan_missing(
     include_internal: bool = False,
     scan_policy: ScanPolicy | None = None,
     include_files: set[str] | None = None,
+    include_source_paths: dict[str, set[str]] | None = None,
 ) -> list[TranslationUnit]:
     units: list[TranslationUnit] = []
     policy = scan_policy or DEFAULT_SCAN_POLICY
@@ -284,10 +323,15 @@ def scan_missing(
         relative = source_file.relative_to(source_root).as_posix()
         if include_files is not None and relative not in include_files:
             continue
+        if include_source_paths is not None and relative not in include_source_paths:
+            continue
         target_file = target_root / relative
         source_data = load_json(source_file)
         target_data = load_json(target_file) if target_file.exists() else None
         for text_node in iter_text_nodes(source_data):
+            source_changed = include_source_paths is not None and text_node.path_id in include_source_paths.get(relative, set())
+            if include_source_paths is not None and not source_changed:
+                continue
             policy_rule = policy.decision_for(relative, text_node.path_id, text_node.key, text_node.value)
             if policy_rule is not None and policy_rule.action == "exclude":
                 continue
@@ -313,11 +357,15 @@ def scan_missing(
                     if isinstance(candidate, str):
                         target_text = candidate
                         if candidate.strip() and candidate != text_node.value:
-                            continue
+                            if source_changed:
+                                reason = "source_changed"
+                            else:
+                                continue
                         if candidate == text_node.value and not include_internal:
                             if should_suppress_same_source(relative, text_node.path_id, text_node.value):
                                 continue
-                        reason = "target_same_as_source" if candidate.strip() else "missing_target_text"
+                        if reason != "source_changed":
+                            reason = "target_same_as_source" if candidate.strip() else "missing_target_text"
                     else:
                         if target_path_mode != "missing_record":
                             reason = "target_path_not_text"

@@ -25,7 +25,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 
 | 功能 | 定义 | 当前进展 |
 |---|---|---|
-| 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON | 已完成全量扫描、scan policy 和 changed-files 增量扫描初版 |
+| 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON；可用上一版 `KR` 做源文 path 级 diff | 已完成全量扫描、scan policy、changed-files 文件级过滤和 source-baseline JSON path 级源文变化扫描；源文变化但目标已有旧中文会标记为 `source_changed` |
 | 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存，并对缓存质量做本地审计 | 已完成同步与 audit 初版；workflow summary 可暴露术语库问题分布 |
 | 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；可导出 review pack，审校确认后可写入本地 glossary cache；`workflow run` 默认产出本次新增术语候选和审校包 |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
@@ -67,3 +67,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 13. 作为审校者，我希望候选译文、源文、QA 问题和可修订译文在同一张表里，并能把确认结果回写为后续自动翻译不会覆盖的状态。
 14. 作为维护者，我希望每次使用 Paratranz 术语库前能自动发现空译名、多译名冲突和韩文残留，避免低质量术语污染模型上下文。
 15. 作为开发者，我希望真实模型调用结果能缓存，并能追踪每条译文来自人工 state、TM、候选缓存还是 provider，便于复盘和控制成本。
+16. 作为维护者，我希望上游 RAW 更新后只扫描真正新增或变化的源文路径，并把已有旧译文的源文变化标记出来，避免同文件内无关字段造成审校噪声。
