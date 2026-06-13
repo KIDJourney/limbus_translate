@@ -114,6 +114,97 @@ def cmd_translate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_workflow_run(args: argparse.Namespace) -> int:
+    source = Path(args.source)
+    target = Path(args.target)
+    output = Path(args.output)
+    work_dir = Path(args.work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    scan_policy = read_scan_policy(Path(args.scan_policy)) if args.scan_policy else None
+    include_files = (
+        read_changed_files(Path(args.changed_files), source_root=source, target_root=target) if args.changed_files else None
+    )
+    units = scan_missing(
+        source,
+        target,
+        include_internal=args.include_internal,
+        scan_policy=scan_policy,
+        include_files=include_files,
+    )
+    units_path = work_dir / "missing-units.json"
+    write_units(units_path, units)
+
+    memory_entries = build_memory(source, target)
+    tm_path = work_dir / "tm.json"
+    write_memory(tm_path, memory_entries)
+    memory = {entry.source_hash: entry for entry in memory_entries}
+
+    glossary = read_cache(Path(args.glossary)) if args.glossary else []
+    states = read_state(Path(args.state)) if args.state else {}
+
+    lore_entries = read_lore_cache(Path(args.lore)) if args.lore else []
+    lore_path = Path(args.lore) if args.lore else None
+    if args.lore_input:
+        lore_entries = import_lore(Path(args.lore_input))
+        lore_path = work_dir / "lore.json"
+        write_lore_cache(lore_path, lore_entries)
+
+    lore_index = read_lore_index(Path(args.lore_index)) if args.lore_index else None
+    lore_index_path = Path(args.lore_index) if args.lore_index else None
+    if lore_entries and lore_index is None:
+        lore_index = build_lore_index(lore_entries, dimensions=args.lore_dimensions)
+        lore_index_path = work_dir / "lore-index.json"
+        write_lore_index(lore_index_path, lore_index)
+
+    overlay_existing_target(source, target, output)
+    translated = translate_units(
+        source_root=source,
+        target_root=target,
+        output_root=output,
+        units=units,
+        glossary=glossary,
+        provider=get_provider(args.provider),
+        memory=memory,
+        lore_entries=lore_entries,
+        lore_index=lore_index,
+        states=states,
+        limit=args.limit,
+    )
+
+    length_policy = read_length_policy(Path(args.length_policy)) if args.length_policy else None
+    qa_units = units[: args.limit] if args.limit is not None else units
+    issues = qa_output(units=qa_units, output_root=output, glossary=glossary, length_policy=length_policy)
+    qa_path = work_dir / "qa-report.json"
+    write_issues(qa_path, issues)
+    qa_summary = summarize_issues(issues)
+
+    by_reason: dict[str, int] = {}
+    for unit in units:
+        by_reason[unit.reason] = by_reason.get(unit.reason, 0) + 1
+    summary = {
+        "units": len(units),
+        "translated": translated,
+        "qa_issues": len(issues),
+        "by_reason": dict(sorted(by_reason.items())),
+        "qa": qa_summary,
+        "artifacts": {
+            "units": str(units_path),
+            "tm": str(tm_path),
+            "lore": str(lore_path) if lore_path else "",
+            "lore_index": str(lore_index_path) if lore_index_path else "",
+            "output": str(output),
+            "qa_report": str(qa_path),
+        },
+    }
+    summary_path = work_dir / "summary.json"
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"workflow complete: {translated}/{len(units)} units -> {output}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    has_error = any(issue.severity == "error" for issue in issues)
+    return 1 if has_error and args.fail_on_error else 0
+
+
 def cmd_tm_build(args: argparse.Namespace) -> int:
     entries = build_memory(Path(args.source), Path(args.target))
     write_memory(Path(args.output), entries)
@@ -378,6 +469,28 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--provider", default="dry-run")
     translate.add_argument("--limit", type=int, default=None)
     translate.set_defaults(func=cmd_translate)
+
+    workflow = sub.add_parser("workflow", help="Run the update translation workflow end to end.")
+    workflow_sub = workflow.add_subparsers(required=True)
+    workflow_run = workflow_sub.add_parser("run")
+    workflow_run.add_argument("--source", required=True)
+    workflow_run.add_argument("--target", required=True)
+    workflow_run.add_argument("--output", default="build/LLC_zh-CN")
+    workflow_run.add_argument("--work-dir", default="build/workflow")
+    workflow_run.add_argument("--scan-policy", default="")
+    workflow_run.add_argument("--changed-files", default="")
+    workflow_run.add_argument("--include-internal", action="store_true")
+    workflow_run.add_argument("--glossary", default="")
+    workflow_run.add_argument("--state", default="")
+    workflow_run.add_argument("--lore", default="")
+    workflow_run.add_argument("--lore-input", default="")
+    workflow_run.add_argument("--lore-index", default="")
+    workflow_run.add_argument("--lore-dimensions", type=int, default=256)
+    workflow_run.add_argument("--length-policy", default="")
+    workflow_run.add_argument("--provider", default="dry-run")
+    workflow_run.add_argument("--limit", type=int, default=None)
+    workflow_run.add_argument("--fail-on-error", action="store_true")
+    workflow_run.set_defaults(func=cmd_workflow_run)
 
     tm = sub.add_parser("tm", help="Build or inspect translation memory.")
     tm_sub = tm.add_subparsers(required=True)

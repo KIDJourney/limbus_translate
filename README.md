@@ -42,6 +42,24 @@ python3 -m limbus_translate.cli scan \
 
 `--changed-files` 接受 `git diff --name-only` 这类换行分隔清单，只扫描清单中涉及的 JSON 相对文件；`KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 都会归一化为同一个相对路径，非 JSON 行会被忽略。不传该参数时执行全量扫描。
 
+一键执行本次更新链路：
+
+```bash
+python3 -m limbus_translate.cli workflow run \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --output build/LLC_zh-CN \
+  --work-dir build/workflow \
+  --scan-policy config/scan-policy.sample.json \
+  --changed-files build/changed-files.txt \
+  --glossary cache/glossary/paratranz-6860.json \
+  --lore-input docs/lore \
+  --length-policy config/length-policy.sample.json \
+  --provider dry-run
+```
+
+`workflow run` 会串联 scan、TM 构建、可选 lore 导入/索引、同结构翻译输出和 QA，工作目录中会写出 `missing-units.json`、`tm.json`、可选 `lore.json` / `lore-index.json`、`qa-report.json` 和 `summary.json`。`summary.json` 记录待译单元数、实际写入数、缺译原因分布、QA 汇总和所有产物路径，适合作为一次上游更新的交接入口。
+
 生成候选译文：
 
 ```bash

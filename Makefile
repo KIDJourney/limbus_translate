@@ -101,6 +101,17 @@ smoke:
 		--refined build/refined-terms.json \
 		--output build/local-refined-glossary.json
 	python3 -c "import json; rows=json.load(open('build/local-refined-glossary.json', encoding='utf-8')); assert isinstance(rows, list); assert all(row['provider'] == 'local-refined' for row in rows); print('promoted glossary schema ok')"
+	python3 -m limbus_translate.cli workflow run \
+		--source tests/fixtures/localize/KR \
+		--target tests/fixtures/localize/LLC_zh-CN \
+		--output build/workflow/LLC_zh-CN \
+		--work-dir build/workflow \
+		--scan-policy config/scan-policy.sample.json \
+		--changed-files build/changed-files.txt \
+		--lore-input tests/fixtures/lore \
+		--length-policy config/length-policy.sample.json \
+		--provider dry-run
+	python3 -c "import json; summary=json.load(open('build/workflow/summary.json', encoding='utf-8')); assert summary['units'] == 2; assert summary['translated'] == 2; assert summary['artifacts']['lore_index']; assert summary['qa_issues'] == 2; print('workflow summary schema ok')"
 
 sync-glossary:
 	python3 -m limbus_translate.cli glossary sync-paratranz \

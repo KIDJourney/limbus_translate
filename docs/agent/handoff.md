@@ -2,6 +2,31 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Workflow run 端到端更新链路
+
+### 已完成
+
+- 新增 `workflow run` CLI，一条命令串联 scan、TM 构建、可选 lore 导入/index、overlay 目标树、翻译写回、QA 和 summary。
+- 工作目录会输出 `missing-units.json`、`tm.json`、可选 `lore.json` / `lore-index.json`、`qa-report.json` 和 `summary.json`。
+- `summary.json` 记录待译单元数、实际写入数、缺译原因分布、QA 汇总和 artifact 路径。
+- `make smoke` 已接入 fixture workflow，并校验 summary schema。
+- README、operations、architecture、PRD、test plan、glossary 和 verification log 已补充 workflow 用法与验收口径。
+
+### 验证状态
+
+- fixture workflow：通过，2 条待译单元、2 条 dry-run 写入、2 条 `hangul_residue` warning，artifact 路径完整。
+- `make test`：通过。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，生成 `build/workflow/summary.json` 并通过 schema 断言。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `git diff --check`：通过。
+- 真实 Localize checkout 小范围 workflow：通过，changed-files 指向 `KR/StoryData/3D102A.json`，输出 1 条 `target_same_as_source`、1 条 dry-run 写入、1 条 QA warning，artifact 路径完整。
+
+### 风险
+
+- `workflow run` 是工程串联入口，不替代人工审校；dry-run 输出的韩文残留 warning 是预期质量门禁。
+- changed-files 仍是文件级过滤，不是 JSON path 级 diff；同文件内无关待译字段仍需 scan policy、QA 和人工审查兜底。
+
 ## 2026-06-13 — Changed-files 增量扫描
 
 ### 已完成

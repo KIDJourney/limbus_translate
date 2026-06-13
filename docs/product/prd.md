@@ -32,6 +32,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
 | 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回、轻量 TF-IDF n-gram 和离线 hashed-vector index 初版 |
+| 端到端更新工作流 | 一条命令串联扫描、TM、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI 初版；正式上线仍需要人工审校与真实 provider 门禁 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 已完成 scan policy 配置层和 `dataList.id` 主键对齐初版；仍需按更多真实文件类型扩充规则库 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
@@ -61,3 +62,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 9. 作为模型评估维护者，我希望自动抽样的 gold set 能导出给人工确认，并把确认后的样本回写为 curated gold，避免未审样本污染模型赛马结果。
 10. 作为维护者，我希望扫描规则能通过配置按文件、路径和内容过滤噪声，而不是每次发现内部字段都修改代码。
 11. 作为维护者，我希望每次上游更新后可以直接用 git diff 文件清单收敛扫描范围，而不是反复全量扫描和人工筛选无关文件。
+12. 作为维护者，我希望一次上游更新能用一条命令产出待译单元、候选输出、QA 报告和 summary，便于交给审校继续处理。

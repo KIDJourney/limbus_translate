@@ -21,6 +21,7 @@ LocalizeLimbusCompany checkout
     -> translator.py: overlay existing target tree and set translated JSON paths
     -> qa.py: placeholders, tags, numbers, line breaks, glossary checks
     -> terms.py: candidate extraction, refiner providers, refined term cache
+    -> cli.py workflow run: scan -> TM -> lore index -> translate -> QA summary
     -> build/LLC_zh-CN/**/*.json
 ```
 
@@ -40,7 +41,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；非 exact TM 命中时构建上下文包并传给 provider；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行、术语命中和 UI 长度风险；支持 JSON length policy；输出 MQM 风格 category 汇总 |
 | `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语；通过 `rules` / `openai` provider 输出 refined term cache；将已确认 refined term promote 为本地 glossary cache |
-| `limbus_translate/cli.py` | 命令行入口 |
+| `limbus_translate/cli.py` | 命令行入口；`workflow run` 串联扫描、TM、lore index、翻译输出、QA 和 summary |
 | `tests/fixtures/` | 最小 Localize JSON 测试夹具 |
 | `docs/research/` | 模型、流程、外部来源调研 |
 
@@ -55,7 +56,8 @@ LocalizeLimbusCompany checkout
 7. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险，可通过 `--length-policy` 按路径或 risk 覆盖字符级阈值，并按 `accuracy` / `terminology` / `format` / `locale_convention` / `design` 等 MQM 风格类别汇总。
 8. `eval build-gold` 从已有中译参考抽取回归样本，`eval sample-gold` 做分层抽样，`eval review-pack` / `eval apply-review` 把人工确认结果写成 curated gold；`eval run` 用 gold set 比较 provider 输出，生成 `build/eval-report.json`，用于模型赛马和 prompt 回归。
 9. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
-10. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+10. `workflow run` 把 scan、TM 构建、可选 lore 导入/索引、translate 和 QA 串成一次可复现更新，输出工作目录内的 `missing-units.json`、`tm.json`、可选 lore cache/index、`qa-report.json` 和 `summary.json`。
+11. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 `TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存。未提供 index 时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；提供 `--lore-index` 时使用离线 hashed-vector index 召回。当前还不是外部 embedding 服务或经过 gold set 调参的完整 RAG。
 

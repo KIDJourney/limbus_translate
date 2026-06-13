@@ -16,6 +16,7 @@
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |
 | LoreIndex | 由 `LoreEntry` 构建的离线 hashed-vector sparse index，用于缓存和验证世界观资料相似召回 |
+| Workflow run | `limbus_translate.cli workflow run` 的端到端更新入口，串联 scan、TM、可选 lore 导入/索引、translate、QA 和 summary |
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
 | Term review pack | 从 `RefinedTerm` 导出的人工审校包，包含 `review.csv`、`review.jsonl` 和 Paratranz 候选导入 CSV |
 | Reviewed glossary | 从人工审校后的 `review.csv` 导出的本地 glossary cache；只包含 `approved` 明确为真且译名非空的术语 |

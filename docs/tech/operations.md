@@ -50,6 +50,18 @@ python3 -m limbus_translate.cli lore search \
   --query "단테가 전투를 지휘한다" \
   --output build/lore-search.json
 
+python3 -m limbus_translate.cli workflow run \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --output build/LLC_zh-CN \
+  --work-dir build/workflow \
+  --scan-policy config/scan-policy.sample.json \
+  --changed-files build/changed-files.txt \
+  --glossary cache/glossary/paratranz-6860.json \
+  --lore-input docs/lore \
+  --length-policy config/length-policy.sample.json \
+  --provider dry-run
+
 python3 -m limbus_translate.cli translate \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
@@ -133,6 +145,8 @@ python3 -m limbus_translate.cli terms promote \
 `scan --scan-policy` 接受 JSON 策略文件，当前示例为 `config/scan-policy.sample.json`。规则按顺序匹配，支持 `include` / `exclude` 两种 action，并可按 `relative_file`、`relative_file_prefix`、`json_path`、`json_path_suffix`、`key`、`source_contains` 过滤。`include` 可把非默认文本 key 纳入扫描并可覆盖 `risk`；`exclude` 用于过滤内部事件名、占位文案、无用文本或特定文件类型的噪声。不传该参数时扫描行为保持内置默认。
 
 `scan --changed-files` 接受 `git diff --name-only` 生成的换行分隔文件清单，只扫描涉及的 JSON 相对文件。路径可以是仓库根目录形式的 `KR/Foo.json` / `LLC_zh-CN/Foo.json`，也可以是语言目录内的 `Foo.json`；非 JSON 文件会被忽略。该参数用于 RAW/GTP 更新后把扫描范围收敛到本次变更，减少全量扫描和人工审查成本。
+
+`workflow run` 是一次上游更新的默认串联入口：先按 scan policy 和 changed-files 生成 `missing-units.json`，再构建 `tm.json`，可选导入 `--lore-input` 并生成离线 `lore-index.json`，随后 overlay 现有目标树、执行翻译、运行 QA，最后写出 `summary.json`。`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
 
 `terms review-pack` 会从 refined cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。`review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据；`paratranz-import.csv` 只包含 `decision=term` 且已有 `suggested_target` 的候选，作为平台导入前的审校材料。
 
