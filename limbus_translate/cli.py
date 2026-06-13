@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
+from .evaluation import read_gold_cases, run_gold_evaluation, summarize_eval, write_eval_report
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
 from .lore import import_lore, read_lore_cache, write_lore_cache
 from .memory import build_memory, read_memory, write_memory
@@ -154,6 +155,16 @@ def cmd_state_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_eval_run(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    results = run_gold_evaluation(cases, get_provider(args.provider), min_similarity=args.min_similarity)
+    write_eval_report(Path(args.report), results)
+    summary = summarize_eval(results)
+    print(f"eval complete: {summary['total']} cases -> {args.report}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 1 if summary["pass_rate"] < args.fail_under else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="limbus-translate")
     sub = parser.add_subparsers(required=True)
@@ -213,6 +224,16 @@ def build_parser() -> argparse.ArgumentParser:
     qa.add_argument("--length-policy", default="")
     qa.add_argument("--fail-on-error", action="store_true")
     qa.set_defaults(func=cmd_qa)
+
+    evaluation = sub.add_parser("eval", help="Run provider regression on a gold translation set.")
+    eval_sub = evaluation.add_subparsers(required=True)
+    eval_run = eval_sub.add_parser("run")
+    eval_run.add_argument("--gold", required=True)
+    eval_run.add_argument("--provider", choices=["dry-run", "openai"], default="dry-run")
+    eval_run.add_argument("--report", default="build/eval-report.json")
+    eval_run.add_argument("--min-similarity", type=float, default=0.75)
+    eval_run.add_argument("--fail-under", type=float, default=0.0, help="Fail if pass_rate is below this value.")
+    eval_run.set_defaults(func=cmd_eval_run)
 
     terms = sub.add_parser("terms", help="Extract and cache candidate glossary terms.")
     terms_sub = terms.add_subparsers(required=True)

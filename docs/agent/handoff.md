@@ -15,6 +15,7 @@
   - `translate`：用 provider 生成同结构输出，默认 `dry-run`。
   - `lore import`：把 Markdown / JSON / JSONL / CSV / TXT 世界观资料导成可召回 cache。
   - `context.py`：为 provider 构建结构化 `TranslationContextBundle`，包含位置、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段。
+  - `eval run`：用 gold set 调用 provider，输出相似度、格式一致性、术语缺失和 pass rate 报告。
   - `qa`：检查韩文残留、占位符、标签、数字、换行、术语命中和路径/risk 字符级 length policy，并输出 MQM 风格类别汇总。
   - `tm build`：构建 exact-match 翻译记忆。
   - `terms extract`：从新增文本提取候选术语/短语缓存。
@@ -39,6 +40,7 @@
 - `reviewed` / `locked` 状态：fixture 测试通过，锁定单元不会被 `translate` 覆盖。
 - 结构化上下文包：`tests.test_context.test_translate_provider_receives_structured_context` 和 `tests.test_context.test_context_includes_cross_file_similar_memory` 通过，provider 收到术语、邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段；真实 Localize checkout 带 `cache/tm/exact.json` dry-run translate 限制 3 条通过。
 - 世界观资料缓存：`tests.test_lore` 验证 Markdown / JSON 导入、cache roundtrip、anchors 召回；`make smoke` 验证 `lore import --input tests/fixtures/lore` 和 `translate --lore build/lore.json` 链路。
+- Gold set 评估：`tests.test_evaluation` 验证匹配 provider 全通过、错误 provider 报 similarity / format / terminology 问题、report 可落盘；`make smoke` 生成 `build/eval-report.json`。
 - QA 简繁、长度风险、路径/risk 字符级 length policy 和 MQM category/summary：fixture 测试通过；真实 dry-run QA 小样本输出 19 条 accuracy 类 issue，报告字段落盘正常；`make smoke` 已验证 `qa --length-policy config/length-policy.sample.json` 可读。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
 
@@ -47,6 +49,7 @@
 - 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
 - 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体、路径/risk 字符级 length policy 和 MQM 风格分类，但还没有像素级 UI 长度。
 - 当前 lore cache 是关键词/anchors 召回，不是向量检索；真实世界观资料仍需整理为本地笔记或外部知识源导入。
+- 当前 gold set 只有 fixture 级样本，用于验证评估链路；尚未建立真实 500-1000 条模型赛马样本。
 - 当前术语候选提取和 rules refiner 只是自动粗筛；OpenAI provider 也只能给建议译名，正式术语仍需人工确认后通过 `terms promote` 进入 termbase。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
 
@@ -54,7 +57,7 @@
 
 - 补像素级 UI 长度检查和具体 UI 容器策略。
 - 把本地 promoted glossary 与 Paratranz 或审校系统的正式 termbase 同步，并把 lore cache 升级为向量检索和经过 gold set 调参的相似句检索。
-- 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。
+- 扩充 500-1000 条真实 gold set，并用 `eval run --provider openai --fail-under ...` 做模型赛马和 prompt 回归。
 
 ## 2026-06-09 — 文档骨架初版
 

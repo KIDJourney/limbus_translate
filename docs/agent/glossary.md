@@ -9,6 +9,7 @@
 | Termbase | 词语级术语库，用于专名和固定译名一致性 |
 | TM | Translation Memory，句段级翻译记忆，用于复用已审校译文 |
 | RAG | 检索增强生成，用世界观、角色和相似句上下文辅助翻译 |
+| Gold set | 固定人工参考译文样本，用于比较 provider、prompt 和上下文策略的回归表现 |
 | TranslationUnit | 本项目内部待译单元，包含文件、JSON path、源文、目标文和缺译原因 |
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；不是完整外部 RAG |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |

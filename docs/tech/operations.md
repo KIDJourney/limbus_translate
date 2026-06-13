@@ -55,6 +55,11 @@ python3 -m limbus_translate.cli qa \
   --report build/qa-report.json \
   --length-policy config/length-policy.sample.json
 
+python3 -m limbus_translate.cli eval run \
+  --gold tests/fixtures/gold-set.json \
+  --provider dry-run \
+  --report build/eval-report.json
+
 python3 -m limbus_translate.cli terms extract \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
@@ -78,6 +83,8 @@ python3 -m limbus_translate.cli terms promote \
 `qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值。当前示例是字符级策略，不替代真实 UI 像素测量。
 
 `lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；当前是关键词召回，不是向量检索。
+
+`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`--fail-under` 可作为 CI 门禁；当前 fixture 只用于链路验证，不代表真实模型质量。
 
 ## 文档验证
 

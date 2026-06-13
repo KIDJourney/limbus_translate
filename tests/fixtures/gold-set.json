@@ -1,0 +1,32 @@
+{
+  "cases": [
+    {
+      "case_id": "story-001",
+      "source_text": "단테가 전투를 시작했다.",
+      "expected_text": "但丁开始了战斗。",
+      "glossary": [
+        {
+          "source": "단테",
+          "target": "但丁",
+          "note": "character"
+        },
+        {
+          "source": "전투",
+          "target": "战斗",
+          "note": "system"
+        }
+      ],
+      "tags": ["story", "terminology"],
+      "context": {
+        "relative_file": "StoryData/Sample.json",
+        "json_path": "dataList.0.content"
+      }
+    },
+    {
+      "case_id": "format-001",
+      "source_text": "<color=#ff0000>{0}</color> 피해를 입었다.",
+      "expected_text": "<color=#ff0000>{0}</color> 受到了伤害。",
+      "tags": ["format", "placeholder"]
+    }
+  ]
+}
