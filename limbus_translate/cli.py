@@ -19,7 +19,7 @@ from .evaluation import (
     write_gold_cases,
     write_gold_review_pack,
 )
-from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
+from .glossary import audit_terms, fetch_paratranz_terms, import_terms, read_cache, write_audit_report, write_cache
 from .lore import (
     build_lore_index,
     import_lore,
@@ -92,6 +92,19 @@ def cmd_glossary_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_glossary_audit(args: argparse.Namespace) -> int:
+    terms = read_cache(Path(args.input))
+    report = audit_terms(terms)
+    write_audit_report(Path(args.report), report)
+    print(f"glossary audit complete: {len(report.issues)} issues -> {args.report}")
+    print(json.dumps({"by_code": report.by_code, "by_severity": report.by_severity, "total_terms": report.total_terms}, ensure_ascii=False, sort_keys=True))
+    if args.fail_on == "error" and report.by_severity.get("error", 0):
+        return 1
+    if args.fail_on == "warning" and (report.by_severity.get("error", 0) or report.by_severity.get("warning", 0)):
+        return 1
+    return 0
+
+
 def cmd_translate(args: argparse.Namespace) -> int:
     source = Path(args.source)
     target = Path(args.target)
@@ -148,6 +161,18 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     memory = {entry.source_hash: entry for entry in memory_entries}
 
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
+    glossary_audit_path: Path | None = None
+    glossary_audit_summary: dict[str, object] = {}
+    if glossary:
+        glossary_audit = audit_terms(glossary)
+        glossary_audit_path = work_dir / "glossary-audit.json"
+        write_audit_report(glossary_audit_path, glossary_audit)
+        glossary_audit_summary = {
+            "total_terms": glossary_audit.total_terms,
+            "issues": len(glossary_audit.issues),
+            "by_code": glossary_audit.by_code,
+            "by_severity": glossary_audit.by_severity,
+        }
     states = read_state(Path(args.state)) if args.state else {}
 
     terms_summary: dict[str, object] = {}
@@ -229,11 +254,13 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "qa_issues": len(issues),
         "by_reason": dict(sorted(by_reason.items())),
         "qa": qa_summary,
+        "glossary_audit": glossary_audit_summary,
         "terms": terms_summary,
         "translation_review": translation_review_summary,
         "artifacts": {
             "units": str(units_path),
             "tm": str(tm_path),
+            "glossary_audit": str(glossary_audit_path) if glossary_audit_path else "",
             "term_candidates": str(term_candidates_path) if term_candidates_path else "",
             "refined_terms": str(refined_terms_path) if refined_terms_path else "",
             "term_review_csv": str(term_review_summary.get("review_csv", "")),
@@ -531,6 +558,11 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--input", required=True)
     imp.add_argument("--output", default="cache/glossary/imported.json")
     imp.set_defaults(func=cmd_glossary_import)
+    audit = glossary_sub.add_parser("audit")
+    audit.add_argument("--input", default="cache/glossary/paratranz-6860.json")
+    audit.add_argument("--report", default="build/glossary-audit.json")
+    audit.add_argument("--fail-on", choices=["never", "error", "warning"], default="never")
+    audit.set_defaults(func=cmd_glossary_audit)
 
     translate = sub.add_parser("translate", help="Translate a scan result into an output tree.")
     translate.add_argument("--source", required=True)

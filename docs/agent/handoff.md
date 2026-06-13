@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Paratranz 术语库审计
+
+### 已完成
+
+- 新增 `GlossaryAuditReport` / `GlossaryAuditIssue`，对本地 glossary cache 做质量审计。
+- 新增 `glossary audit` CLI，输出 `glossary-audit.json`，支持 `--fail-on never|error|warning`。
+- 审计覆盖空源文、空译名、源文疑似非韩文、译文等于源文、译文韩文残留、同源多译名冲突和重复 source/target pair。
+- `workflow run --glossary` 自动写出 `glossary-audit.json`，并在 `summary.json` 中记录 `glossary_audit` 和 artifact 路径。
+- `make smoke` 新增 fixture glossary、独立 audit 和 workflow summary 断言。
+
+### 验证状态
+
+- 公开 Paratranz API 可匿名读取项目 `6860` 术语；页面访问本身可能 403，工具优先走 API 或导出文件。
+- `make test`：通过，直接测试覆盖冲突、空值、韩文残留和重复项。
+- `make smoke`：通过，生成 `build/glossary-audit.json` 和 `build/workflow/glossary-audit.json`。
+- 真实 Paratranz 同步：1968 条术语；audit 发现 11 个结构性问题，其中 `source_without_hangul=8`、`target_contains_hangul=1`、`target_same_as_source=2`。
+- 真实 Localize checkout：带 `/tmp/limbus-paratranz-6860.json` 执行 workflow `--limit 1`，扫描 19 条、翻译 1 条，summary 正确写入同一 glossary audit 统计。
+
+### 风险
+
+- Audit 只发现结构性质量问题，不会自动判断多译名冲突中哪个译名正确；正式术语清理仍需要人工或更强的 LLM 审校步骤。
+
 ## 2026-06-13 — 翻译审校包与 state 回写
 
 ### 已完成

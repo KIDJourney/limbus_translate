@@ -7,6 +7,7 @@
 | `LLC_zh-CN` | 简体中文语言包目录 |
 | Paratranz | 在线协作翻译平台；项目 `6860` 当前作为术语主来源 |
 | Termbase | 词语级术语库，用于专名和固定译名一致性 |
+| Glossary audit | 对本地术语缓存做质量审计，检查空源文、空译名、同源多译名冲突、译文韩文残留、译文等于源文和重复项 |
 | TM | Translation Memory，句段级翻译记忆，用于复用已审校译文 |
 | RAG | 检索增强生成，用世界观、角色和相似句上下文辅助翻译 |
 | Gold set | 固定人工参考译文样本，用于比较 provider、prompt 和上下文策略的回归表现 |
@@ -16,7 +17,7 @@
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |
 | LoreIndex | 由 `LoreEntry` 构建的离线 hashed-vector sparse index，用于缓存和验证世界观资料相似召回 |
-| Workflow run | `limbus_translate.cli workflow run` 的端到端更新入口，串联 scan、TM、术语审校包、可选 lore 导入/索引、translate、QA、翻译审校包和 summary |
+| Workflow run | `limbus_translate.cli workflow run` 的端到端更新入口，串联 scan、TM、可选 glossary audit、术语审校包、可选 lore 导入/索引、translate、QA、翻译审校包和 summary |
 | Translation review pack | 从候选输出和 QA 报告导出的人工译文审校包，包含 `review.csv` 和 `review.jsonl`，approved 后可回写为 reviewed / locked state |
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
 | Term review pack | 从 `RefinedTerm` 导出的人工审校包，包含 `review.csv`、`review.jsonl` 和 Paratranz 候选导入 CSV |

@@ -28,6 +28,11 @@ python3 -m limbus_translate.cli glossary sync-paratranz \
   --project-id 6860 \
   --output cache/glossary/paratranz-6860.json
 
+python3 -m limbus_translate.cli glossary audit \
+  --input cache/glossary/paratranz-6860.json \
+  --report build/glossary-audit.json \
+  --fail-on error
+
 python3 -m limbus_translate.cli tm build \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
@@ -157,7 +162,9 @@ python3 -m limbus_translate.cli terms promote \
 
 `scan --changed-files` 接受 `git diff --name-only` 生成的换行分隔文件清单，只扫描涉及的 JSON 相对文件。路径可以是仓库根目录形式的 `KR/Foo.json` / `LLC_zh-CN/Foo.json`，也可以是语言目录内的 `Foo.json`；非 JSON 文件会被忽略。该参数用于 RAW/GTP 更新后把扫描范围收敛到本次变更，减少全量扫描和人工审查成本。
 
-`workflow run` 是一次上游更新的默认串联入口：先按 scan policy 和 changed-files 生成 `missing-units.json`，再构建 `tm.json`，对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，随后 overlay 现有目标树、执行翻译、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
+`glossary audit` 会读取本地 glossary cache，检查空源文、空译名、同源多译名冲突、源文疑似非韩文、译文韩文残留、译文等于源文和重复 source/target pair。`--fail-on error` 可把严重术语问题作为自动化门禁；`--fail-on warning` 更适合正式发布前的人工清理阶段。
+
+`workflow run` 是一次上游更新的默认串联入口：先按 scan policy 和 changed-files 生成 `missing-units.json`，再构建 `tm.json`；如果传入 `--glossary`，会写出 `glossary-audit.json` 并在 summary 暴露术语库问题分布；随后对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，再 overlay 现有目标树、执行翻译、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
 
 `review pack` 会把待译单元、当前候选输出和 QA issue 汇总成 `review.csv` / `review.jsonl`。审校者只需要填写 `approved`，必要时填写 `revised_target`；`review apply` 只接收明确 approved 且有译文的行，写成 `reviewed` / `locked` state，后续 `translate --state` 或 `workflow run --state` 会优先使用并保护这些译文。
 

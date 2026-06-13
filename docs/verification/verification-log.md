@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-13 | Paratranz 术语库审计 | 新增 `glossary audit` 和 `GlossaryAuditReport`，检查空源文、空译名、同源多译名冲突、疑似非韩文源词、译文韩文残留、译文等于源文和重复项；`workflow run --glossary` 自动写出 `glossary-audit.json` 并汇总到 summary | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；公开 Paratranz API page 1 抽样；真实 `glossary sync-paratranz` + `glossary audit`；真实 Localize checkout 带 glossary workflow `--limit 1` | 通过；直接测试覆盖冲突、空值、韩文残留和重复项；fixture smoke 生成 `build/glossary-audit.json`，workflow summary 包含 `glossary_audit` 和 artifact；公开 API 当前可匿名读取项目 `6860` 术语；真实同步 1968 条术语，audit 发现 11 个结构性问题，`by_code={"source_without_hangul":8,"target_contains_hangul":1,"target_same_as_source":2}`；真实 workflow 扫描 19 条、翻译 1 条，summary 带同一 audit 统计 |
 | 2026-06-13 | 翻译审校包与 state 回写 | 新增 `review pack` / `review apply` 和 `review.py`，从候选输出与 QA 报告导出人工审校 CSV/JSONL，并将 approved 行回写为 reviewed / locked state；`workflow run` 自动生成 `translation-review/` | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；真实 Localize checkout workflow + review apply 小样本 | 通过；直接测试覆盖 QA issue 写入 review pack、approved CSV 回写 reviewed state；fixture smoke 生成 `build/translation-review/review.csv`、`review.jsonl` 和 `build/reviewed-state.json`；workflow summary 包含 `translation_review` 与 review artifact；真实 checkout 全量扫描 + `--limit 1` workflow 生成 translation review 1 条，模拟 approve 后回写 1 条 reviewed state |
 | 2026-06-13 | Workflow run 术语增量闭环 | `workflow run` 默认对本次新增待译单元执行术语候选提取、rules refine 和 term review pack 导出，并把术语统计与 artifact 路径写入 summary | fixture workflow；`make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout 全量扫描 + `--limit 1` workflow | 通过；fixture workflow 生成 3 条候选、3 条 refined、1 条 review pack 记录，summary 包含 `terms.by_decision` 和 `term_candidates` / `refined_terms` / `term_review_*` artifact；真实 checkout workflow 扫描 19 条待译单元、翻译 1 条，生成 19 条候选、19 条 refined 和 10 条 review pack 记录 |
 | 2026-06-13 | Workflow run 端到端更新链路 | 新增 `workflow run`，一条命令串联 changed-files 扫描、TM 构建、可选 lore 导入/index、同结构输出、QA 和 summary 产物 | fixture 最小 workflow；`make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check`；真实 Localize checkout 指定 `KR/StoryData/3D102A.json` 小范围 workflow | 通过；fixture workflow 输出 2 条待译单元、2 条 dry-run 写入、2 条 `hangul_residue` warning，并生成 `missing-units.json`、`tm.json`、`lore.json`、`lore-index.json`、`qa-report.json`、`summary.json`；真实 checkout workflow 输出 1 条 `target_same_as_source`、1 条 dry-run 写入、1 条 QA warning，summary artifact 路径完整 |
@@ -34,6 +35,7 @@
 6. lore cache 已支持 anchors、术语、轻量 TF-IDF n-gram 和离线 hashed-vector 索引召回；尚未接入外部 embedding 服务或专用向量数据库，也未经过 gold set 调参。
 7. Gold set 可从真实 reference tree 自动抽取、分层采样、导出审校包并回写 curated gold；正式模型赛马仍取决于人工审校覆盖范围，且尚未执行真实 OpenAI 多模型评估。
 8. 术语候选提取和 rules 二次提炼仍是粗筛；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
+9. Glossary audit 能暴露术语库结构问题，但不会自动决定正确译名；多译名冲突和空译名仍需要术语维护者处理。
 
 ## 未覆盖项
 

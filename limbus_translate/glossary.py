@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -12,6 +13,7 @@ from typing import Any
 
 PARATRANZ_PROJECT_ID = 6860
 PARATRANZ_API = "https://paratranz.cn/api/projects/{project_id}/terms"
+HANGUL_RE = re.compile(r"[가-힣]")
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,26 @@ class GlossaryTerm:
     updated_at: str | None
     raw: dict[str, Any]
     fetched_at: str
+
+
+@dataclass(frozen=True)
+class GlossaryAuditIssue:
+    code: str
+    severity: str
+    message: str
+    source: str
+    target: str
+    term_id: int | None
+    provider: str
+    related_term_ids: list[int | None]
+
+
+@dataclass(frozen=True)
+class GlossaryAuditReport:
+    total_terms: int
+    issues: list[GlossaryAuditIssue]
+    by_code: dict[str, int]
+    by_severity: dict[str, int]
 
 
 def normalize_text(value: str) -> str:
@@ -152,6 +174,112 @@ def read_cache(path: Path) -> list[GlossaryTerm]:
         return []
     rows = json.loads(path.read_text(encoding="utf-8"))
     return [GlossaryTerm(**row) for row in rows]
+
+
+def audit_terms(terms: list[GlossaryTerm]) -> GlossaryAuditReport:
+    issues: list[GlossaryAuditIssue] = []
+    by_source: dict[str, list[GlossaryTerm]] = {}
+    seen_pairs: dict[tuple[str, str], list[GlossaryTerm]] = {}
+
+    for term in terms:
+        source = term.source.strip()
+        target = term.target.strip()
+        source_key = normalize_text(source)
+        target_key = normalize_text(target)
+        if source_key:
+            by_source.setdefault(source_key, []).append(term)
+        if source_key or target_key:
+            seen_pairs.setdefault((source_key, target_key), []).append(term)
+
+        if not source:
+            issues.append(audit_issue("empty_source", "error", "Glossary term has an empty Korean source.", term))
+        elif not HANGUL_RE.search(source):
+            issues.append(
+                audit_issue(
+                    "source_without_hangul",
+                    "warning",
+                    "Glossary source does not contain Hangul; confirm it is intentionally kept as a Korean-side term.",
+                    term,
+                )
+            )
+        if not target:
+            issues.append(audit_issue("empty_target", "warning", "Glossary term has no Chinese translation.", term))
+        if source and target and source_key == target_key:
+            issues.append(
+                audit_issue("target_same_as_source", "error", "Glossary translation is identical to the source.", term)
+            )
+        if target and HANGUL_RE.search(target):
+            issues.append(
+                audit_issue("target_contains_hangul", "error", "Glossary Chinese translation still contains Hangul.", term)
+            )
+
+    for source_key, rows in by_source.items():
+        targets = {normalize_text(row.target) for row in rows if row.target.strip()}
+        if len(targets) <= 1:
+            continue
+        related = [row.term_id for row in rows]
+        for row in rows:
+            issues.append(
+                audit_issue(
+                    "source_target_conflict",
+                    "warning",
+                    "Same Korean source has multiple Chinese translations in the glossary.",
+                    row,
+                    related_term_ids=related,
+                )
+            )
+
+    for (_source_key, target_key), rows in seen_pairs.items():
+        if not target_key or len(rows) <= 1:
+            continue
+        related = [row.term_id for row in rows]
+        for row in rows:
+            issues.append(
+                audit_issue(
+                    "duplicate_term_pair",
+                    "info",
+                    "Exact glossary source/translation pair appears more than once.",
+                    row,
+                    related_term_ids=related,
+                )
+            )
+
+    by_code: dict[str, int] = {}
+    by_severity: dict[str, int] = {}
+    for issue in issues:
+        by_code[issue.code] = by_code.get(issue.code, 0) + 1
+        by_severity[issue.severity] = by_severity.get(issue.severity, 0) + 1
+    return GlossaryAuditReport(
+        total_terms=len(terms),
+        issues=issues,
+        by_code=dict(sorted(by_code.items())),
+        by_severity=dict(sorted(by_severity.items())),
+    )
+
+
+def audit_issue(
+    code: str,
+    severity: str,
+    message: str,
+    term: GlossaryTerm,
+    *,
+    related_term_ids: list[int | None] | None = None,
+) -> GlossaryAuditIssue:
+    return GlossaryAuditIssue(
+        code=code,
+        severity=severity,
+        message=message,
+        source=term.source,
+        target=term.target,
+        term_id=term.term_id,
+        provider=term.provider,
+        related_term_ids=related_term_ids or [],
+    )
+
+
+def write_audit_report(path: Path, report: GlossaryAuditReport) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(asdict(report), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def match_terms(text: str, terms: list[GlossaryTerm], *, limit: int = 20) -> list[GlossaryTerm]:
