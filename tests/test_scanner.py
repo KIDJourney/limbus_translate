@@ -11,3 +11,4 @@ def test_scan_missing_detects_korean_target_and_blank_target() -> None:
     assert paths["dataList.0.options.0.result.0"] == "missing_target_text"
     assert "dataList.0.name" not in paths
     assert "dataList.0.options.0.message" not in paths
+    assert "dataList.1.name" not in paths

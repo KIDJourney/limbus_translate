@@ -22,20 +22,19 @@
 - 直接调用 `tests.test_scanner` 和 `tests.test_glossary`：通过。
 - `python3 -m limbus_translate.cli glossary sync-paratranz --page-size 1000 --output /tmp/limbus-paratranz.json`：通过，同步 1963 条。
 - `python3 -m limbus_translate.cli translate ... --provider dry-run`：通过，输出同结构 JSON。
-- 真实 Localize checkout 扫描：通过，输出 263 条 `target_same_as_source`，但多数可能是内部事件名，需要 adapter 继续降噪。
+- 真实 Localize checkout 扫描：通过；默认输出 19 条 `target_same_as_source`，全部为 `StoryData/*.content` 高风险文本；`--include-internal` 可审计 263 条完整同源残留。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
 
 ### 风险
 
 - 当前扫描仍按 JSON path 对齐，尚未实现 `dataList[*].id` 主键 adapter。
-- 当前没有自动 QA，不能直接把模型输出视为可上线译文。
+- 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行和术语命中，但还没有长度、简繁和 MQM 分类。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
 
 ### 下一步
 
-- 增加文件类型 adapter，区分可见文本和内部标识，减少真实扫描中 `name/subDesc` 误报。
-- 增加占位符、富文本标签、数字、换行、术语命中和简繁 QA。
-- 增加 translation memory 与 source hash / reviewed / locked 状态。
+- 增加 `dataList[*].id` 主键 adapter，避免数组插入导致 JSON path 漂移。
+- 增加简繁、长度、reviewed / locked 状态和 fuzzy TM。
 - 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。
 
 ## 2026-06-09 — 文档骨架初版

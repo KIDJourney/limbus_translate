@@ -16,7 +16,7 @@
 | 文档结构检查 | 根目录入口、关键目录、关键 README 是否存在 | `make validate-docs` |
 | Markdown 链接检查 | `docs/` 和根目录入口中的相对 Markdown 链接 | `make validate-docs` |
 | 直接单元测试 | 扫描器和术语匹配核心行为 | `make test` |
-| CLI smoke | fixture 扫描和 dry-run 同结构输出 | `make smoke` |
+| CLI smoke | fixture 扫描、TM 构建、dry-run 同结构输出、QA 报告 | `make smoke` |
 | Paratranz smoke | 项目 `6860` 术语同步 | `make sync-glossary` |
 | TODO / 待确认扫描 | 发现未解决问题和阻塞项 | `rg "TODO|待确认|阻塞" docs` |
 
@@ -24,7 +24,7 @@
 
 1. `make validate-docs` 通过。
 2. `make test` 通过。
-3. `make smoke` 通过，输出 `build/missing-units.json` 和 `build/LLC_zh-CN/Sample.json`。
+3. `make smoke` 通过，输出 `build/missing-units.json`、`build/tm.json`、`build/LLC_zh-CN/Sample.json` 和 `build/qa-report.json`。
 4. `make sync-glossary` 能同步 1963 条左右术语；若 Paratranz API 不可用，应使用离线导入兜底。
 5. 真实 Localize checkout 扫描结果需要人工审查，不能把内部标识直接当缺译上线。
 

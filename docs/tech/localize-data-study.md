@@ -68,11 +68,11 @@ python3 -m limbus_translate.cli scan \
 结果：
 
 ```text
-scan complete: 263 units -> /tmp/limbus-real-missing.json
-{"target_same_as_source": 263}
+scan complete: 19 units -> /tmp/limbus-real-missing-v4.json
+{"target_same_as_source": 19}
 ```
 
-这些结果仍包含不少带下划线的内部事件名，例如 `막힌길_뚫기`。因此下一步不应直接翻译全部 263 条，而要补文件类型 adapter，把“可见文本”和“内部标识”分开。
+默认扫描已经过滤同源残留里的内部事件名、显示占位、无用 `subDesc`、战斗气泡元数据等噪声。剩余 19 条全部是 `StoryData/*.content` 高风险剧情/演出文本，仍需要人工判断哪些是要翻译的可见文本、哪些是演出指令。使用 `--include-internal` 可审计完整 263 条同源残留。
 
 ## Paratranz 术语源
 

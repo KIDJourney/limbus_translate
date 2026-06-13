@@ -54,11 +54,38 @@ def classify_risk(relative_file: str, json_path: str, source_text: str) -> str:
     return "low"
 
 
-def should_suppress_same_source(json_path: str, source_text: str) -> bool:
+def is_script_direction(text: str) -> bool:
+    stripped = text.strip()
+    if stripped.startswith("//"):
+        return True
+    if stripped in {"(더미)", "더미"}:
+        return True
+    if "에피소드" in stripped and ("S" in stripped or "_" in stripped):
+        return True
+    return False
+
+
+def should_suppress_same_source(relative_file: str, json_path: str, source_text: str) -> bool:
     key = json_path.split(".")[-1]
-    if key in {"name", "title", "subDesc", "prevDesc", "teller"} and looks_internal_identifier(source_text):
+    if key in {"name", "title", "subDesc", "prevDesc", "teller", "summary"} and looks_internal_identifier(source_text):
+        return True
+    if key == "subDesc" and any(marker in source_text for marker in ["사용 안하는", "subDesc"]):
+        return True
+    if key == "summary" and source_text in {"표시용"}:
+        return True
+    if key == "name" and any(marker in source_text for marker in ["선택지", "이벤트", "버프 이름", "사용하지않는", "번역x"]):
+        return True
+    if key == "name" and any(marker in source_text for marker in ["이펙트", "효과"]):
         return True
     if key == "desc" and source_text in {"사용 안하는 텍스트", "적 잡몹", "더미"}:
+        return True
+    if key == "desc" and any(marker in source_text for marker in ["표시용", "번역해주세요"]):
+        return True
+    if key == "desc" and looks_internal_identifier(source_text):
+        return True
+    if key == "desc" and relative_file.startswith("BattleSpeechBubbleDlg"):
+        return True
+    if key == "content" and is_script_direction(source_text):
         return True
     return False
 
@@ -85,7 +112,7 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                         if candidate.strip() and candidate != text_node.value:
                             continue
                         if candidate == text_node.value and not include_internal:
-                            if should_suppress_same_source(text_node.path_id, text_node.value):
+                            if should_suppress_same_source(relative, text_node.path_id, text_node.value):
                                 continue
                         reason = "target_same_as_source" if candidate.strip() else "missing_target_text"
                     else:

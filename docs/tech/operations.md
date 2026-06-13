@@ -24,13 +24,25 @@ python3 -m limbus_translate.cli glossary sync-paratranz \
   --project-id 6860 \
   --output cache/glossary/paratranz-6860.json
 
+python3 -m limbus_translate.cli tm build \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --output cache/tm/exact.json
+
 python3 -m limbus_translate.cli translate \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
+  --memory cache/tm/exact.json \
   --output build/LLC_zh-CN \
   --provider dry-run
+
+python3 -m limbus_translate.cli qa \
+  --units build/missing-units.json \
+  --output-root build/LLC_zh-CN \
+  --glossary cache/glossary/paratranz-6860.json \
+  --report build/qa-report.json
 ```
 
 ## 文档验证

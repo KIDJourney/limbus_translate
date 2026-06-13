@@ -36,8 +36,24 @@ python3 -m limbus_translate.cli translate \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
+  --memory cache/tm/exact.json \
   --output build/LLC_zh-CN \
   --provider dry-run
+```
+
+构建翻译记忆和 QA 报告：
+
+```bash
+python3 -m limbus_translate.cli tm build \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --output cache/tm/exact.json
+
+python3 -m limbus_translate.cli qa \
+  --units build/missing-units.json \
+  --output-root build/LLC_zh-CN \
+  --glossary cache/glossary/paratranz-6860.json \
+  --report build/qa-report.json
 ```
 
 使用 OpenAI provider 前需要安装可选依赖并设置 API key：

@@ -12,8 +12,10 @@ LocalizeLimbusCompany checkout
   LLC_zh-CN/**/*.json
     -> scanner.py: semantic JSON path diff
     -> glossary.py: Paratranz / offline term cache
+    -> memory.py: exact translation memory
     -> providers.py: dry-run / OpenAI provider
     -> translator.py: overlay existing target tree and set translated JSON paths
+    -> qa.py: placeholders, tags, numbers, line breaks, glossary checks
     -> build/LLC_zh-CN/**/*.json
 ```
 
@@ -24,8 +26,10 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
 | `limbus_translate/scanner.py` | 生成待翻译单元，当前按相对路径和 JSON path 对齐 |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
+| `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树 |
+| `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行和术语命中 |
 | `limbus_translate/cli.py` | 命令行入口 |
 | `tests/fixtures/` | 最小 Localize JSON 测试夹具 |
 | `docs/research/` | 模型、流程、外部来源调研 |
@@ -34,9 +38,10 @@ LocalizeLimbusCompany checkout
 
 1. `scan` 读取 `KR` 与 `LLC_zh-CN`，输出 `TranslationUnit[]`。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
-3. `translate` 读取待译单元和术语缓存，按 JSON path 写入输出目录。
-4. 后续 `qa` 应在输出前检查占位符、标签、术语、长度和简体中文。
-5. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+3. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
+4. `translate` 读取待译单元、术语缓存和 TM，按 JSON path 写入输出目录。
+5. `qa` 检查占位符、标签、术语、数字、换行和韩文残留。
+6. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 ## 设计原则
 
