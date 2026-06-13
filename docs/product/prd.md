@@ -27,7 +27,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 |---|---|---|
 | 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON | 已完成初版 |
 | 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存 | 已完成初版 |
-| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；确认后可 promote 到本地 glossary cache |
+| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；可导出 review pack，确认后可 promote 到本地 glossary cache |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
@@ -56,3 +56,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 4. 作为开发者，我希望在没有模型 API key 时也能通过 dry-run 验证扫描和输出链路。
 5. 作为项目维护者，我希望 Paratranz 术语库能被缓存，并在 API 不可用时用导出文件兜底。
 6. 作为术语维护者，我希望新增候选先被自动分流，减少人工从整句和普通短语里筛术语的成本。
+7. 作为术语维护者，我希望自动提炼结果能导出为可审校表格和 Paratranz 候选导入文件，而不是直接污染正式术语库。

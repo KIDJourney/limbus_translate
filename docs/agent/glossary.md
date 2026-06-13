@@ -14,6 +14,7 @@
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；不是完整外部 RAG |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
+| Term review pack | 从 `RefinedTerm` 导出的人工审校包，包含 `review.csv`、`review.jsonl` 和 Paratranz 候选导入 CSV |
 | Promoted glossary | 从 `RefinedTerm` 导出的本地 glossary cache；只包含已确认且有译名的 `term` |
 | MQM | Multidimensional Quality Metrics，本地化质量评估框架；本项目 QA 使用 MQM 风格 category 做粗粒度归类 |
 | LengthPolicy | QA 使用的长度策略，可按路径、文件前缀、JSON path 后缀或 risk 覆盖字符阈值和 East Asian Width 估算显示宽度；不是像素级 UI 测量 |

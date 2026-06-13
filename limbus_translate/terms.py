@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import os
 import re
@@ -171,6 +172,94 @@ def promote_refined_terms(
             )
         )
     return promoted
+
+
+def reviewable_terms(
+    refined_terms: list[RefinedTerm],
+    *,
+    include_not_term: bool = False,
+    min_confidence: float = 0.0,
+) -> list[RefinedTerm]:
+    selected: list[RefinedTerm] = []
+    for term in refined_terms:
+        if term.confidence < min_confidence:
+            continue
+        if term.decision == "not_term" and not include_not_term:
+            continue
+        selected.append(term)
+    order = {"term": 0, "needs_review": 1, "not_term": 2}
+    selected.sort(key=lambda term: (order.get(term.decision, 99), -term.confidence, term.source))
+    return selected
+
+
+def write_term_review_pack(
+    output_dir: Path,
+    refined_terms: list[RefinedTerm],
+    *,
+    include_not_term: bool = False,
+    min_confidence: float = 0.0,
+) -> dict[str, int | str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    selected = reviewable_terms(refined_terms, include_not_term=include_not_term, min_confidence=min_confidence)
+    review_csv = output_dir / "review.csv"
+    review_jsonl = output_dir / "review.jsonl"
+    paratranz_csv = output_dir / "paratranz-import.csv"
+
+    fieldnames = [
+        "source",
+        "target",
+        "approved",
+        "decision",
+        "confidence",
+        "provider",
+        "count",
+        "reason",
+        "note",
+        "contexts",
+        "sample_text",
+    ]
+    with review_csv.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for term in selected:
+            writer.writerow(
+                {
+                    "source": term.source,
+                    "target": term.suggested_target,
+                    "approved": "",
+                    "decision": term.decision,
+                    "confidence": f"{term.confidence:.2f}",
+                    "provider": term.provider,
+                    "count": term.count,
+                    "reason": term.reason,
+                    "note": term.note,
+                    "contexts": " | ".join(term.contexts),
+                    "sample_text": term.sample_text,
+                }
+            )
+
+    with review_jsonl.open("w", encoding="utf-8") as handle:
+        for term in selected:
+            payload = asdict(term)
+            payload["approved"] = ""
+            handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+    importable = [term for term in selected if term.decision == "term" and term.suggested_target.strip()]
+    with paratranz_csv.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["term", "translation", "note"])
+        writer.writeheader()
+        for term in importable:
+            note_parts = [part for part in [term.note, f"provider={term.provider}", f"reason={term.reason}"] if part]
+            writer.writerow({"term": term.source, "translation": term.suggested_target, "note": "; ".join(note_parts)})
+
+    return {
+        "selected": len(selected),
+        "paratranz_candidates": len(importable),
+        "review_csv": str(review_csv),
+        "review_jsonl": str(review_jsonl),
+        "paratranz_csv": str(paratranz_csv),
+    }
 
 
 class RulesTermRefiner:

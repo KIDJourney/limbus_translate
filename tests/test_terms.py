@@ -1,3 +1,5 @@
+import csv
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -11,6 +13,7 @@ from limbus_translate.terms import (
     get_term_refiner,
     promote_refined_terms,
     read_refined_terms,
+    write_term_review_pack,
     write_refined_terms,
 )
 
@@ -182,3 +185,74 @@ def test_promote_refined_terms_exports_only_confirmed_terms() -> None:
     assert promoted[0].target_lang == "zh-cn"
     assert "approved by reviewer" in promoted[0].note
     assert promoted[0].raw["source"] == "거울 던전"
+
+
+def test_write_term_review_pack_exports_review_and_paratranz_files() -> None:
+    refined = [
+        RefinedTerm(
+            source="거울 던전",
+            decision="term",
+            suggested_target="镜牢",
+            note="approved candidate",
+            confidence=0.91,
+            contexts=["StoryData/Sample.json::dataList.0.content"],
+            provider="openai",
+            count=3,
+            sample_text="거울 던전으로 향했다.",
+            reason="hangul_phrase",
+            raw={},
+        ),
+        RefinedTerm(
+            source="지크프리트",
+            decision="needs_review",
+            suggested_target="齐格弗里德",
+            note="needs human approval",
+            confidence=0.8,
+            contexts=["StoryData/Sample.json::dataList.1.content"],
+            provider="openai",
+            count=1,
+            sample_text="지크프리트가 말했다.",
+            reason="marked_name",
+            raw={},
+        ),
+        RefinedTerm(
+            source="문장입니다",
+            decision="not_term",
+            suggested_target="",
+            note="ordinary phrase",
+            confidence=0.7,
+            contexts=[],
+            provider="rules",
+            count=1,
+            sample_text="문장입니다.",
+            reason="long_phrase",
+            raw={},
+        ),
+    ]
+
+    with TemporaryDirectory() as temp_dir:
+        summary = write_term_review_pack(Path(temp_dir), refined)
+        with (Path(temp_dir) / "review.csv").open(encoding="utf-8-sig") as handle:
+            review_rows = list(csv.DictReader(handle))
+        with (Path(temp_dir) / "paratranz-import.csv").open(encoding="utf-8-sig") as handle:
+            paratranz_rows = list(csv.DictReader(handle))
+        jsonl_rows = [
+            json.loads(line)
+            for line in (Path(temp_dir) / "review.jsonl").read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+
+    assert summary["selected"] == 2
+    assert summary["paratranz_candidates"] == 1
+    assert [row["source"] for row in review_rows] == ["거울 던전", "지크프리트"]
+    assert review_rows[0]["approved"] == ""
+    assert review_rows[0]["target"] == "镜牢"
+    assert paratranz_rows == [
+        {
+            "term": "거울 던전",
+            "translation": "镜牢",
+            "note": "approved candidate; provider=openai; reason=hangul_phrase",
+        }
+    ]
+    assert jsonl_rows[0]["source"] == "거울 던전"
+    assert jsonl_rows[0]["approved"] == ""

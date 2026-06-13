@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — 术语审校与 Paratranz 候选导出包
+
+### 已完成
+
+- 新增 `terms review-pack` CLI，从 refined term cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。
+- `review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据。
+- `paratranz-import.csv` 只导出 `decision=term` 且已有 `suggested_target` 的候选，避免 `needs_review` 或空译名污染正式术语库。
+- `make test` 和 `make smoke` 已接入 review pack schema 检查。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖 review pack CSV、JSONL 和 Paratranz 候选 CSV。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，fixture review pack 生成 1 条审校候选。
+- 真实 Localize checkout 小样本：扫描 19 条，术语候选 19 条，rules refine 输出 `needs_review=10`、`not_term=9`，review pack 生成 10 条审校候选，Paratranz 候选导入 CSV 为 0 条。
+
+### 风险
+
+- 当前仍不直接调用 Paratranz 写 API；`paratranz-import.csv` 是候选导入材料，需要人工确认后再进入正式 termbase。rules provider 不生成建议译名，因此真实 rules 小样本的 Paratranz 候选为 0 条是预期结果。
+
 ## 2026-06-13 — QA 估算显示宽度策略
 
 ### 已完成

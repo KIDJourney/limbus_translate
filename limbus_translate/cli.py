@@ -28,6 +28,7 @@ from .terms import (
     read_refined_terms,
     write_candidates,
     write_refined_terms,
+    write_term_review_pack,
 )
 from .translator import overlay_existing_target, translate_units
 
@@ -140,6 +141,19 @@ def cmd_terms_promote(args: argparse.Namespace) -> int:
     print(f"terms promote complete: {len(promoted)} promoted -> {args.output}")
     if args.merge:
         print(f"merged with existing glossary: {len(merged)} terms")
+    return 0
+
+
+def cmd_terms_review_pack(args: argparse.Namespace) -> int:
+    refined = read_refined_terms(Path(args.refined))
+    summary = write_term_review_pack(
+        Path(args.output_dir),
+        refined,
+        include_not_term=args.include_not_term,
+        min_confidence=args.min_confidence,
+    )
+    print(f"terms review-pack complete: {summary['selected']} terms -> {args.output_dir}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
 
 
@@ -290,6 +304,12 @@ def build_parser() -> argparse.ArgumentParser:
     terms_promote.add_argument("--merge", default="", help="Optional existing glossary cache to merge before writing.")
     terms_promote.add_argument("--min-confidence", type=float, default=0.0)
     terms_promote.set_defaults(func=cmd_terms_promote)
+    terms_review_pack = terms_sub.add_parser("review-pack")
+    terms_review_pack.add_argument("--refined", default="cache/terms/refined.json")
+    terms_review_pack.add_argument("--output-dir", default="build/term-review")
+    terms_review_pack.add_argument("--include-not-term", action="store_true")
+    terms_review_pack.add_argument("--min-confidence", type=float, default=0.0)
+    terms_review_pack.set_defaults(func=cmd_terms_review_pack)
 
     state = sub.add_parser("state", help="Create or manage unit review state.")
     state_sub = state.add_subparsers(required=True)
