@@ -2,6 +2,27 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Gold set 多 provider 对比评估
+
+### 已完成
+
+- 新增 `eval compare` CLI，可在同一 gold set 上评估多个 provider/model。
+- provider spec 支持 `dry-run`、`openai` 和 `openai:<model>`；`eval compare` 支持 `label=spec`，便于记录模型名称。
+- 新增 compare report，包含每个 provider 的完整 eval result，以及按 pass rate / avg similarity 排序的 ranking。
+- `translate --provider` 和 `eval run --provider` 放宽为 provider spec，支持后续直接指定 OpenAI 模型。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖好/坏 provider ranking 和 compare report 写盘。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make smoke`：通过，生成 `build/eval-compare-report.json`，包含 `baseline` 和 `candidate` 两个 dry-run provider。
+- 真实 Localize checkout 小样本：`eval build-gold --limit 20` 生成 20 条；`eval compare` 对两个 dry-run label 生成完整 ranking。
+
+### 风险
+
+- 当前只验证了 dry-run provider 的 compare 链路；真实 OpenAI 多模型赛马还需要 API key、人工精选 gold set 和成本控制。
+
 ## 2026-06-13 — 审校术语回写本地缓存
 
 ### 已完成

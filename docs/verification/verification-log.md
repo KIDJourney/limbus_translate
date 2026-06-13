@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-13 | Gold set 多 provider 对比 | 新增 `eval compare`，支持多个 provider/model 在同一 gold set 上输出 ranking 和完整结果 | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make smoke`；真实 Localize checkout `eval build-gold --limit 20` + `eval compare` | 通过；直接测试覆盖好/坏 provider ranking 和 compare report 写盘；fixture smoke 生成 `build/eval-compare-report.json`；真实 gold set 20 条，两个 dry-run label compare 生成完整 ranking |
 | 2026-06-13 | 审校术语回写 | 新增 `terms apply-review`，把人工审校通过的 `review.csv` 行写成本地 reviewed glossary cache | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make validate-docs`；`make smoke`；真实 Localize checkout scan/terms extract/refine/review-pack/apply-review | 通过；直接测试覆盖 approved 判定、空译名跳过和未确认行跳过；fixture smoke 模拟 1 条审校确认并生成 `build/local-reviewed-glossary.json`；真实扫描 19 条，review pack 10 条，模拟确认 `찰-칵 -> 喀嚓` 后生成 1 条 reviewed glossary |
 | 2026-06-13 | 术语审校导出 | 新增 `terms review-pack`，导出人工审校 CSV、结构化 JSONL 和 Paratranz 候选导入 CSV | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make validate-docs`；`make smoke`；真实 Localize checkout scan/terms extract/refine/review-pack | 通过；直接测试覆盖 review CSV、JSONL 和 Paratranz 候选 CSV；fixture smoke 生成 1 条审校候选；真实扫描 19 条，术语候选 19 条，rules refine 输出 `needs_review=10`、`not_term=9`，真实 review pack 生成 10 条审校候选，Paratranz 候选导入 CSV 为 0 条 |
 | 2026-06-13 | QA 长度策略 | 新增 East Asian Width 估算显示宽度检查、`max_display_width` 策略字段和 `line_display_too_wide` MQM design issue | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make validate-docs`；`make smoke`；真实 Localize checkout scan/TM/translate limit 3/QA | 通过；直接测试覆盖 display width 触发路径；文档验证通过 36 个 Markdown；fixture smoke QA 读取 sample length policy；真实扫描 19 条 `target_same_as_source`，TM 92337 条，dry-run translate 3 条通过，真实 QA 生成 19 条 accuracy issue |
@@ -20,7 +21,7 @@
 1. 缺失 `dataList` record 可以 append 源 record 并替换已处理字段，但同一 record 中未进入当前 units 的其他韩文字段仍可能需要后续扫描/QA 复审。
 2. QA 尚未覆盖按具体 UI 容器的像素级长度限制；当前已有路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类。
 3. lore cache 已支持 anchors、术语和轻量 TF-IDF n-gram 相似召回，尚未升级为 embedding 向量库。
-4. Gold set 可从真实 reference tree 自动抽取 1000 条，尚未人工精选为分层模型赛马基准。
+4. Gold set 可从真实 reference tree 自动抽取并支持多 provider compare，尚未人工精选为分层模型赛马基准，也未执行真实 OpenAI 多模型评估。
 5. 术语候选提取和 rules 二次提炼仍是粗筛；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
 
 ## 未覆盖项

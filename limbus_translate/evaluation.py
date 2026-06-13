@@ -44,6 +44,13 @@ class EvalResult:
     tags: list[str]
 
 
+@dataclass(frozen=True)
+class EvalComparison:
+    provider: str
+    summary: dict[str, Any]
+    results: list[EvalResult]
+
+
 def read_gold_cases(path: Path) -> list[GoldCase]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     rows = payload.get("cases", payload) if isinstance(payload, dict) else payload
@@ -161,6 +168,19 @@ def run_gold_evaluation(
     return results
 
 
+def run_eval_comparison(
+    cases: list[GoldCase],
+    providers: list[tuple[str, TranslationProvider]],
+    *,
+    min_similarity: float = 0.75,
+) -> list[EvalComparison]:
+    comparisons: list[EvalComparison] = []
+    for label, provider in providers:
+        results = run_gold_evaluation(cases, provider, min_similarity=min_similarity)
+        comparisons.append(EvalComparison(provider=label, summary=summarize_eval(results), results=results))
+    return comparisons
+
+
 def evaluate_prediction(case: GoldCase, predicted_text: str, *, min_similarity: float) -> list[str]:
     issues: list[str] = []
     similarity = text_similarity(predicted_text, case.expected_text)
@@ -207,6 +227,39 @@ def summarize_eval(results: list[EvalResult]) -> dict[str, Any]:
 def write_eval_report(path: Path, results: list[EvalResult]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"summary": summarize_eval(results), "results": [asdict(result) for result in results]}
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def summarize_eval_comparison(comparisons: list[EvalComparison]) -> dict[str, Any]:
+    rankings = sorted(
+        (
+            {
+                "provider": comparison.provider,
+                "total": comparison.summary["total"],
+                "pass_rate": comparison.summary["pass_rate"],
+                "avg_similarity": comparison.summary["avg_similarity"],
+                "failed": comparison.summary["failed"],
+            }
+            for comparison in comparisons
+        ),
+        key=lambda row: (-float(row["pass_rate"]), -float(row["avg_similarity"]), str(row["provider"])),
+    )
+    return {"providers": len(comparisons), "rankings": rankings}
+
+
+def write_eval_comparison_report(path: Path, comparisons: list[EvalComparison]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "summary": summarize_eval_comparison(comparisons),
+        "providers": [
+            {
+                "provider": comparison.provider,
+                "summary": comparison.summary,
+                "results": [asdict(result) for result in comparison.results],
+            }
+            for comparison in comparisons
+        ],
+    }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

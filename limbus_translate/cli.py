@@ -8,8 +8,11 @@ from pathlib import Path
 from .evaluation import (
     build_gold_cases,
     read_gold_cases,
+    run_eval_comparison,
     run_gold_evaluation,
+    summarize_eval_comparison,
     summarize_eval,
+    write_eval_comparison_report,
     write_eval_report,
     write_gold_cases,
 )
@@ -197,6 +200,18 @@ def cmd_eval_run(args: argparse.Namespace) -> int:
     return 1 if summary["pass_rate"] < args.fail_under else 0
 
 
+def cmd_eval_compare(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    providers = [(label, get_provider(spec)) for label, spec in parse_provider_specs(args.provider)]
+    comparisons = run_eval_comparison(cases, providers, min_similarity=args.min_similarity)
+    write_eval_comparison_report(Path(args.report), comparisons)
+    summary = summarize_eval_comparison(comparisons)
+    print(f"eval compare complete: {summary['providers']} providers -> {args.report}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    best = summary["rankings"][0] if summary["rankings"] else {"pass_rate": 0.0}
+    return 1 if float(best["pass_rate"]) < args.fail_under else 0
+
+
 def cmd_eval_build_gold(args: argparse.Namespace) -> int:
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     cases = build_gold_cases(
@@ -215,6 +230,26 @@ def cmd_eval_build_gold(args: argparse.Namespace) -> int:
     print(f"gold build complete: {len(cases)} cases -> {args.output}")
     print(json.dumps({"by_tag": by_tag, "total": len(cases)}, ensure_ascii=False, sort_keys=True))
     return 0
+
+
+def parse_provider_specs(values: list[str]) -> list[tuple[str, str]]:
+    providers: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for index, value in enumerate(values, start=1):
+        if "=" in value:
+            label, spec = value.split("=", 1)
+            label = label.strip()
+            spec = spec.strip()
+        else:
+            spec = value.strip()
+            label = spec or f"provider-{index}"
+        if not label or not spec:
+            raise ValueError(f"invalid provider spec: {value}")
+        if label in seen:
+            raise ValueError(f"duplicate provider label: {label}")
+        seen.add(label)
+        providers.append((label, spec))
+    return providers
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -249,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--lore", default="")
     translate.add_argument("--state", default="")
     translate.add_argument("--output", default="build/LLC_zh-CN")
-    translate.add_argument("--provider", choices=["dry-run", "openai"], default="dry-run")
+    translate.add_argument("--provider", default="dry-run")
     translate.add_argument("--limit", type=int, default=None)
     translate.set_defaults(func=cmd_translate)
 
@@ -281,11 +316,23 @@ def build_parser() -> argparse.ArgumentParser:
     eval_sub = evaluation.add_subparsers(required=True)
     eval_run = eval_sub.add_parser("run")
     eval_run.add_argument("--gold", required=True)
-    eval_run.add_argument("--provider", choices=["dry-run", "openai"], default="dry-run")
+    eval_run.add_argument("--provider", default="dry-run")
     eval_run.add_argument("--report", default="build/eval-report.json")
     eval_run.add_argument("--min-similarity", type=float, default=0.75)
     eval_run.add_argument("--fail-under", type=float, default=0.0, help="Fail if pass_rate is below this value.")
     eval_run.set_defaults(func=cmd_eval_run)
+    eval_compare = eval_sub.add_parser("compare")
+    eval_compare.add_argument("--gold", required=True)
+    eval_compare.add_argument(
+        "--provider",
+        action="append",
+        required=True,
+        help="Provider spec, optionally label=spec. Examples: dry=dry-run, gpt41=openai:gpt-4.1.",
+    )
+    eval_compare.add_argument("--report", default="build/eval-compare-report.json")
+    eval_compare.add_argument("--min-similarity", type=float, default=0.75)
+    eval_compare.add_argument("--fail-under", type=float, default=0.0, help="Fail if the best pass_rate is below this value.")
+    eval_compare.set_defaults(func=cmd_eval_compare)
     eval_build = eval_sub.add_parser("build-gold")
     eval_build.add_argument("--source", required=True)
     eval_build.add_argument("--target", required=True)

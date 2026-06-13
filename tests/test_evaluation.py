@@ -4,8 +4,11 @@ from tempfile import TemporaryDirectory
 from limbus_translate.evaluation import (
     build_gold_cases,
     read_gold_cases,
+    run_eval_comparison,
     run_gold_evaluation,
+    summarize_eval_comparison,
     summarize_eval,
+    write_eval_comparison_report,
     write_eval_report,
     write_gold_cases,
 )
@@ -82,6 +85,24 @@ def test_eval_report_roundtrip() -> None:
 
     assert '"summary"' in text
     assert '"results"' in text
+
+
+def test_eval_comparison_ranks_providers() -> None:
+    cases = read_gold_cases(Path("tests/fixtures/gold-set.json"))
+
+    comparisons = run_eval_comparison(cases, [("gold", GoldProvider()), ("bad", BadProvider())], min_similarity=0.9)
+    summary = summarize_eval_comparison(comparisons)
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "eval-compare-report.json"
+        write_eval_comparison_report(path, comparisons)
+        text = path.read_text(encoding="utf-8")
+
+    assert summary["providers"] == 2
+    assert summary["rankings"][0]["provider"] == "gold"
+    assert summary["rankings"][0]["pass_rate"] == 1.0
+    assert summary["rankings"][1]["provider"] == "bad"
+    assert '"providers"' in text
+    assert '"rankings"' in text
 
 
 def test_build_gold_cases_from_reference_tree() -> None:

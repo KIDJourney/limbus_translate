@@ -63,4 +63,9 @@ def get_provider(name: str) -> TranslationProvider:
         return DryRunProvider()
     if name == "openai":
         return OpenAIProvider()
+    if name.startswith("openai:"):
+        model = name.split(":", 1)[1].strip()
+        if not model:
+            raise ValueError("openai provider spec requires a model after `openai:`.")
+        return OpenAIProvider(model=model)
     raise ValueError(f"unknown provider: {name}")

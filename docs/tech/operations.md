@@ -67,6 +67,12 @@ python3 -m limbus_translate.cli eval run \
   --provider dry-run \
   --report build/eval-report.json
 
+python3 -m limbus_translate.cli eval compare \
+  --gold cache/eval/gold-set.json \
+  --provider baseline=dry-run \
+  --provider gpt41=openai:gpt-4.1 \
+  --report build/eval-compare-report.json
+
 python3 -m limbus_translate.cli terms extract \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
@@ -104,7 +110,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；翻译上下文召回同时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度。当前仍不是 embedding 或外部向量库检索。
 
-`eval build-gold` 从已有 `KR` / `LLC_zh-CN` 参考译文中抽取 gold set，跳过空译文、同源残留和仍含韩文的目标文本；可用 `--limit` 控制规模。`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`--fail-under` 可作为 CI 门禁；自动抽取的 gold set 仍需要人工抽查和分层采样，不代表最终模型质量。
+`eval build-gold` 从已有 `KR` / `LLC_zh-CN` 参考译文中抽取 gold set，跳过空译文、同源残留和仍含韩文的目标文本；可用 `--limit` 控制规模。`eval run` 接受 gold set JSON，调用指定 provider 并输出相似度、格式一致性、术语缺失和 pass rate。`eval compare` 接受多个 `--provider label=spec`，输出每个 provider 的完整评估结果和按 pass rate / similarity 排序的 ranking；provider spec 支持 `dry-run`、`openai` 和 `openai:<model>`。`--fail-under` 可作为 CI 门禁；自动抽取的 gold set 仍需要人工抽查和分层采样，不代表最终模型质量。
 
 ## 文档验证
 
