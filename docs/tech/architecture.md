@@ -25,7 +25,7 @@ LocalizeLimbusCompany checkout
 | 路径 | 职责 |
 |---|---|
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
-| `limbus_translate/scanner.py` | 生成待翻译单元，当前按相对路径和 JSON path 对齐 |
+| `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
@@ -38,7 +38,7 @@ LocalizeLimbusCompany checkout
 
 ## 数据流
 
-1. `scan` 读取 `KR` 与 `LLC_zh-CN`，输出 `TranslationUnit[]`。
+1. `scan` 读取 `KR` 与 `LLC_zh-CN`，输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
 3. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
 4. `translate` 读取待译单元、术语缓存和 TM，按 JSON path 写入输出目录。
@@ -50,7 +50,7 @@ LocalizeLimbusCompany checkout
 
 | 原则 | 含义 |
 |---|---|
-| 语义 diff 优先 | 不做文本行 diff；以 JSON path、记录 id、字段类型和 source hash 为核心 |
+| 语义 diff 优先 | 不做文本行 diff；以 JSON path、唯一记录 id、字段类型和 source hash 为核心 |
 | 格式不破坏 | 保留 JSON 结构、占位符、标签、换行和目标文件路径 |
 | 术语先行 | 翻译前注入 Paratranz / 本地术语，翻译后做术语命中 QA |
 | Provider 可替换 | 不把扫描、术语、写回逻辑绑定到某个模型供应商 |

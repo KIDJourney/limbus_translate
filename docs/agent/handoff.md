@@ -32,14 +32,14 @@
 
 ### 风险
 
-- 当前扫描仍按 JSON path 对齐，尚未实现 `dataList[*].id` 主键 adapter。
+- 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
 - 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行和术语命中，但还没有长度、简繁和 MQM 分类。
 - 当前术语候选提取是 heuristic 召回，不是 LLM 定稿。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
 
 ### 下一步
 
-- 增加 `dataList[*].id` 主键 adapter，避免数组插入导致 JSON path 漂移。
+- 增加 `missing_target_record` 的整条记录生成/插入能力。
 - 增加简繁、长度、reviewed / locked 状态和 fuzzy TM。
 - 增加 LLM 术语提炼 provider，把候选短语转成“正式术语 / 非术语 / 需人工判断”。
 - 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。

@@ -25,6 +25,8 @@ class TranslationUnit:
     numbers: list[str]
     line_breaks: int
     risk: str
+    source_json_path: str = ""
+    stable_key: str | None = None
 
 
 def load_json(path: Path) -> Any:
@@ -42,6 +44,75 @@ def dump_json(path: Path, data: Any) -> None:
 def build_unit_id(relative_file: str, json_path: str, source_text: str) -> str:
     raw = f"{relative_file}\0{json_path}\0{source_text}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def get_data_list_match(data: Any, path: tuple[str, ...]) -> tuple[tuple[str, ...], int, tuple[str, ...], Any] | None:
+    for index, part in enumerate(path[:-1]):
+        if part != "dataList" or index + 1 >= len(path):
+            continue
+        record_index_part = path[index + 1]
+        if not record_index_part.isdigit():
+            continue
+        prefix = path[: index + 1]
+        record_index = int(record_index_part)
+        try:
+            records = get_path(data, prefix)
+            record = records[record_index]
+        except (KeyError, IndexError, ValueError, TypeError):
+            return None
+        if isinstance(record, dict) and "id" in record and record["id"] not in {-1, "-1", None, ""}:
+            return prefix, record_index, path[index + 2 :], record["id"]
+    return None
+
+
+def id_is_unique(records: Any, record_id: Any) -> bool:
+    if not isinstance(records, list):
+        return False
+    return sum(1 for record in records if isinstance(record, dict) and record.get("id") == record_id) == 1
+
+
+def id_count(records: Any, record_id: Any) -> int:
+    if not isinstance(records, list):
+        return 0
+    return sum(1 for record in records if isinstance(record, dict) and record.get("id") == record_id)
+
+
+def resolve_target_path_by_id(source_data: Any, target_data: Any, source_path: tuple[str, ...]) -> tuple[str, tuple[str, ...]]:
+    match = get_data_list_match(source_data, source_path)
+    if match is None:
+        return "path", source_path
+    prefix, _record_index, suffix, record_id = match
+    try:
+        source_records = get_path(source_data, prefix)
+    except (KeyError, IndexError, ValueError):
+        return "path", source_path
+    if not id_is_unique(source_records, record_id):
+        return "path", source_path
+    try:
+        target_records = get_path(target_data, prefix)
+    except (KeyError, IndexError, ValueError):
+        return "missing_record", source_path
+    target_count = id_count(target_records, record_id)
+    if target_count == 0:
+        return "missing_record", source_path
+    if target_count > 1:
+        return "path", source_path
+    if not isinstance(target_records, list):
+        return "missing_record", source_path
+    for idx, record in enumerate(target_records):
+        if isinstance(record, dict) and record.get("id") == record_id:
+            return "id", (*prefix, str(idx), *suffix)
+    return "missing_record", source_path
+
+
+def build_stable_key(source_data: Any, source_path: tuple[str, ...]) -> str | None:
+    match = get_data_list_match(source_data, source_path)
+    if match is None:
+        return None
+    prefix, _record_index, suffix, record_id = match
+    suffix_text = ".".join(suffix)
+    base = f"{'.'.join(prefix)}[id={record_id}]"
+    return f"{base}.{suffix_text}" if suffix_text else base
 
 
 def classify_risk(relative_file: str, json_path: str, source_text: str) -> str:
@@ -104,9 +175,19 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                 continue
             target_text: str | None = None
             reason = "missing_target_file"
+            target_path = text_node.path
+            target_path_mode = "path"
             if target_data is not None:
+                target_path_mode, target_path = resolve_target_path_by_id(source_data, target_data, text_node.path)
+                if target_path_mode == "missing_record":
+                    reason = "missing_target_record"
+                    target_path = text_node.path
+                    candidate = None
+                else:
+                    candidate = None
                 try:
-                    candidate = get_path(target_data, text_node.path)
+                    if target_path_mode != "missing_record":
+                        candidate = get_path(target_data, target_path)
                     if isinstance(candidate, str):
                         target_text = candidate
                         if candidate.strip() and candidate != text_node.value:
@@ -116,7 +197,8 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                                 continue
                         reason = "target_same_as_source" if candidate.strip() else "missing_target_text"
                     else:
-                        reason = "target_path_not_text"
+                        if target_path_mode != "missing_record":
+                            reason = "target_path_not_text"
                 except (KeyError, IndexError, ValueError):
                     reason = "missing_target_path"
             source_profile = profile_text(text_node.value)
@@ -124,7 +206,7 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                 TranslationUnit(
                     unit_id=build_unit_id(relative, text_node.path_id, text_node.value),
                     relative_file=relative,
-                    json_path=text_node.path_id,
+                    json_path=".".join(target_path),
                     source_text=text_node.value,
                     target_text=target_text,
                     reason=reason,
@@ -135,6 +217,8 @@ def scan_missing(source_root: Path, target_root: Path, *, include_internal: bool
                     numbers=source_profile.numbers,
                     line_breaks=source_profile.line_breaks,
                     risk=classify_risk(relative, text_node.path_id, text_node.value),
+                    source_json_path=text_node.path_id,
+                    stable_key=build_stable_key(source_data, text_node.path),
                 )
             )
     return units
