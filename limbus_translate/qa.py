@@ -10,6 +10,23 @@ from .json_paths import contains_hangul, get_path
 from .scanner import TranslationUnit, load_json
 
 TRADITIONAL_CHARS = set("體臺與為國門風龍後復發幾無萬廣東關開時會來對個聲長見點說這裡")
+MQM_CATEGORY_BY_CODE = {
+    "empty_translation": "accuracy",
+    "same_as_source": "accuracy",
+    "hangul_residue": "accuracy",
+    "missing_output_file": "accuracy",
+    "missing_output_path": "accuracy",
+    "output_not_text": "accuracy",
+    "term_miss": "terminology",
+    "placeholder_mismatch": "format",
+    "tag_mismatch": "format",
+    "number_mismatch": "format",
+    "line_break_mismatch": "format",
+    "traditional_chinese": "locale_convention",
+    "length_ratio_high": "design",
+    "length_ratio_low": "design",
+    "line_too_long": "design",
+}
 
 
 @dataclass(frozen=True)
@@ -19,6 +36,11 @@ class QaIssue:
     relative_file: str
     json_path: str
     message: str
+    category: str = "other"
+
+
+def mqm_category(code: str) -> str:
+    return MQM_CATEGORY_BY_CODE.get(code, "other")
 
 
 def check_pair(unit: TranslationUnit, translated_text: str, glossary: list[GlossaryTerm]) -> list[QaIssue]:
@@ -27,7 +49,7 @@ def check_pair(unit: TranslationUnit, translated_text: str, glossary: list[Gloss
     target_profile = profile_text(translated_text)
 
     def issue(severity: str, code: str, message: str) -> None:
-        issues.append(QaIssue(severity, code, unit.relative_file, unit.json_path, message))
+        issues.append(QaIssue(severity, code, unit.relative_file, unit.json_path, message, mqm_category(code)))
 
     if not translated_text.strip():
         issue("error", "empty_translation", "译文为空")
@@ -75,20 +97,58 @@ def qa_output(
             output_file = output_root / unit.relative_file
             if not output_file.exists():
                 issues.append(
-                    QaIssue("error", "missing_output_file", unit.relative_file, unit.json_path, "输出文件不存在")
+                    QaIssue(
+                        "error",
+                        "missing_output_file",
+                        unit.relative_file,
+                        unit.json_path,
+                        "输出文件不存在",
+                        mqm_category("missing_output_file"),
+                    )
                 )
                 continue
             loaded[unit.relative_file] = load_json(output_file)
         try:
             translated_text = get_path(loaded[unit.relative_file], tuple(unit.json_path.split(".")))
         except (KeyError, IndexError, ValueError):
-            issues.append(QaIssue("error", "missing_output_path", unit.relative_file, unit.json_path, "输出路径不存在"))
+            issues.append(
+                QaIssue(
+                    "error",
+                    "missing_output_path",
+                    unit.relative_file,
+                    unit.json_path,
+                    "输出路径不存在",
+                    mqm_category("missing_output_path"),
+                )
+            )
             continue
         if not isinstance(translated_text, str):
-            issues.append(QaIssue("error", "output_not_text", unit.relative_file, unit.json_path, "输出路径不是文本"))
+            issues.append(
+                QaIssue(
+                    "error",
+                    "output_not_text",
+                    unit.relative_file,
+                    unit.json_path,
+                    "输出路径不是文本",
+                    mqm_category("output_not_text"),
+                )
+            )
             continue
         issues.extend(check_pair(unit, translated_text, glossary))
     return issues
+
+
+def summarize_issues(issues: list[QaIssue]) -> dict[str, dict[str, int]]:
+    summary = {"by_severity": {}, "by_category": {}, "by_code": {}}
+    for issue in issues:
+        summary["by_severity"][issue.severity] = summary["by_severity"].get(issue.severity, 0) + 1
+        summary["by_category"][issue.category] = summary["by_category"].get(issue.category, 0) + 1
+        summary["by_code"][issue.code] = summary["by_code"].get(issue.code, 0) + 1
+    for values in summary.values():
+        ordered = dict(sorted(values.items()))
+        values.clear()
+        values.update(ordered)
+    return summary
 
 
 def write_issues(path: Path, issues: list[QaIssue]) -> None:

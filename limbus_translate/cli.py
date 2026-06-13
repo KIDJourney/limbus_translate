@@ -8,7 +8,7 @@ from pathlib import Path
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
-from .qa import qa_output, write_issues
+from .qa import qa_output, summarize_issues, write_issues
 from .scanner import TranslationUnit, scan_missing, write_units
 from .state import UnitState, read_state, write_state
 from .terms import (
@@ -86,11 +86,8 @@ def cmd_qa(args: argparse.Namespace) -> int:
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     issues = qa_output(units=units, output_root=Path(args.output_root), glossary=glossary)
     write_issues(Path(args.report), issues)
-    by_severity: dict[str, int] = {}
-    for issue in issues:
-        by_severity[issue.severity] = by_severity.get(issue.severity, 0) + 1
     print(f"qa complete: {len(issues)} issues -> {args.report}")
-    print(json.dumps(by_severity, ensure_ascii=False, sort_keys=True))
+    print(json.dumps(summarize_issues(issues), ensure_ascii=False, sort_keys=True))
     return 1 if any(issue.severity == "error" for issue in issues) and args.fail_on_error else 0
 
 

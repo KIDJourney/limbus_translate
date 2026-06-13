@@ -15,7 +15,7 @@
 |---|---|---|
 | 文档结构检查 | 根目录入口、关键目录、关键 README 是否存在 | `make validate-docs` |
 | Markdown 链接检查 | `docs/` 和根目录入口中的相对 Markdown 链接 | `make validate-docs` |
-| 直接单元测试 | 扫描器、术语匹配、refined term promote、ContextBundle/provider context 传递、跨文件相似 TM 召回核心行为 | `make test` |
+| 直接单元测试 | 扫描器、术语匹配、refined term promote、MQM category/summary、ContextBundle/provider context 传递、跨文件相似 TM 召回核心行为 | `make test` |
 | CLI smoke | fixture 扫描、TM 构建、state 初始化、dry-run 同结构输出、QA 报告、术语候选缓存、rules 二次提炼缓存和 promoted glossary cache | `make smoke` |
 | Paratranz smoke | 项目 `6860` 术语同步 | `make sync-glossary` |
 | TODO / 待确认扫描 | 发现未解决问题和阻塞项 | `rg "TODO|待确认|阻塞" docs` |

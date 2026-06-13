@@ -14,7 +14,7 @@
   - `glossary import`：离线导入 CSV / JSON 术语。
   - `translate`：用 provider 生成同结构输出，默认 `dry-run`。
   - `context.py`：为 provider 构建结构化 `TranslationContextBundle`，包含位置、风险、术语、同文件邻近文本、同文件 TM 和跨文件相似 TM 示例。
-  - `qa`：检查韩文残留、占位符、标签、数字、换行和术语命中。
+  - `qa`：检查韩文残留、占位符、标签、数字、换行和术语命中，并输出 MQM 风格类别汇总。
   - `tm build`：构建 exact-match 翻译记忆。
   - `terms extract`：从新增文本提取候选术语/短语缓存。
   - `terms refine`：用 `rules` / `openai` provider 将候选分为 `term` / `not_term` / `needs_review`，写入 refined cache。
@@ -37,13 +37,13 @@
 - 缺失 `dataList` record 写回：fixture 测试通过，`translate` 会 append 源 record 并替换待译字段。
 - `reviewed` / `locked` 状态：fixture 测试通过，锁定单元不会被 `translate` 覆盖。
 - 结构化上下文包：`tests.test_context.test_translate_provider_receives_structured_context` 和 `tests.test_context.test_context_includes_cross_file_similar_memory` 通过，provider 收到术语、邻近文本、同文件 TM 和跨文件相似 TM 示例；真实 Localize checkout 带 `cache/tm/exact.json` dry-run translate 限制 3 条通过。
-- QA 简繁和长度风险：fixture 测试通过。
+- QA 简繁、长度风险和 MQM category/summary：fixture 测试通过；真实 dry-run QA 小样本输出 19 条 accuracy 类 issue，报告字段落盘正常。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
 
 ### 风险
 
 - 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
-- 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体和字符级长度风险，但还没有 MQM 分类和像素级 UI 长度。
+- 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体、字符级长度风险和 MQM 风格分类，但还没有像素级 UI 长度。
 - 当前术语候选提取和 rules refiner 只是自动粗筛；OpenAI provider 也只能给建议译名，正式术语仍需人工确认后通过 `terms promote` 进入 termbase。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
 

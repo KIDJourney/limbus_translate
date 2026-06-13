@@ -13,5 +13,5 @@
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM 和基础 fuzzy TM 示例；不是完整外部 RAG |
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
 | Promoted glossary | 从 `RefinedTerm` 导出的本地 glossary cache；只包含已确认且有译名的 `term` |
+| MQM | Multidimensional Quality Metrics，本地化质量评估框架；本项目 QA 使用 MQM 风格 category 做粗粒度归类 |
 | `dry-run` provider | 不调用外部模型，只输出 `[待译] 源文`，用于验证扫描和写回链路 |
-| MQM | Multidimensional Quality Metrics，本地化质量评估框架 |

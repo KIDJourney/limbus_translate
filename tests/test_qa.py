@@ -1,4 +1,4 @@
-from limbus_translate.qa import check_pair
+from limbus_translate.qa import check_pair, summarize_issues
 from limbus_translate.scanner import TranslationUnit
 
 
@@ -23,7 +23,8 @@ def make_unit(source_text: str = "{0} 피해량 10% 증가") -> TranslationUnit:
 def test_qa_detects_placeholder_mismatch() -> None:
     unit = make_unit()
     issues = check_pair(unit, "伤害提高 10%", [])
-    assert any(issue.code == "placeholder_mismatch" for issue in issues)
+    issue = next(issue for issue in issues if issue.code == "placeholder_mismatch")
+    assert issue.category == "format"
 
 
 def test_qa_detects_traditional_and_length() -> None:
@@ -47,3 +48,7 @@ def test_qa_detects_traditional_and_length() -> None:
     assert "traditional_chinese" in codes
     assert "length_ratio_high" in codes
     assert "line_too_long" in codes
+    summary = summarize_issues(issues)
+    assert summary["by_category"]["locale_convention"] == 1
+    assert summary["by_category"]["design"] >= 2
+    assert summary["by_code"]["traditional_chinese"] == 1
