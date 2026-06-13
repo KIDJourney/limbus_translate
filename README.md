@@ -171,6 +171,8 @@ python3 -m limbus_translate.cli workflow finalize \
   --work-dir build/finalize \
   --glossary cache/glossary/active.json \
   --length-policy config/length-policy.sample.json \
+  --localize-repo /path/to/LocalizeLimbusCompany \
+  --patch-output build/localize-translation.patch \
   --fail-if-pending \
   --fail-on-error
 

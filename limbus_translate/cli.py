@@ -480,17 +480,30 @@ def cmd_workflow_finalize(args: argparse.Namespace) -> int:
     state_status_path.write_text(json.dumps(state_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_issues(qa_path, issues)
 
+    patch_result = None
+    patch_output = Path(args.patch_output) if args.patch_output else work_dir / "localize-translation.patch"
+    if args.localize_repo:
+        patch_result = make_translation_patch(
+            repo=Path(args.localize_repo),
+            units=finalize_units,
+            states=states,
+            patch_path=patch_output,
+            target_dir=args.patch_target_dir,
+        )
+
     summary = {
         "units": len(finalize_units),
         "applied": applied,
         "qa_issues": len(issues),
         "state": state_summary,
         "qa": qa_summary,
+        "localize_patch": asdict(patch_result) if patch_result is not None else {},
         "artifacts": {
             "output": str(output),
             "state_status": str(state_status_path),
             "qa_report": str(qa_path),
             "summary": str(summary_path),
+            "localize_patch": str(patch_output) if patch_result is not None else "",
         },
     }
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -1005,6 +1018,9 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_finalize.add_argument("--work-dir", default="build/finalize")
     workflow_finalize.add_argument("--glossary", default="")
     workflow_finalize.add_argument("--length-policy", default="")
+    workflow_finalize.add_argument("--localize-repo", default="", help="Optional LocalizeLimbusCompany checkout for git patch generation.")
+    workflow_finalize.add_argument("--patch-output", default="", help="Patch path when --localize-repo is provided. Defaults to work-dir/localize-translation.patch.")
+    workflow_finalize.add_argument("--patch-target-dir", default="LLC_zh-CN")
     workflow_finalize.add_argument("--limit", type=int, default=None)
     workflow_finalize.add_argument("--fail-if-pending", action="store_true")
     workflow_finalize.add_argument("--fail-on-error", action="store_true")
