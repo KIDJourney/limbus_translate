@@ -52,6 +52,7 @@ from .terms import (
     write_refined_terms,
     write_term_review_pack,
 )
+from .translation_cache import read_translation_cache, write_translation_cache, write_translation_trace
 from .translator import overlay_existing_target, translate_units
 
 
@@ -116,20 +117,37 @@ def cmd_translate(args: argparse.Namespace) -> int:
     lore_entries = read_lore_cache(Path(args.lore)) if args.lore else []
     lore_index = read_lore_index(Path(args.lore_index)) if args.lore_index else None
     states = read_state(Path(args.state)) if args.state else {}
+    candidate_cache = read_translation_cache(Path(args.candidate_cache)) if args.candidate_cache else {}
+    candidate_cache_updates = []
+    trace = []
     overlay_existing_target(source, target, output)
+    provider = get_provider(args.provider)
     count = translate_units(
         source_root=source,
         target_root=target,
         output_root=output,
         units=parsed_units,
         glossary=glossary,
-        provider=get_provider(args.provider),
+        provider=provider,
         memory=memory,
         lore_entries=lore_entries,
         lore_index=lore_index,
         states=states,
+        candidate_cache=candidate_cache,
+        candidate_cache_updates=candidate_cache_updates,
+        trace=trace if args.trace else None,
+        provider_name=args.provider,
         limit=args.limit,
     )
+    if args.candidate_cache:
+        merged_cache = dict(candidate_cache)
+        for entry in candidate_cache_updates:
+            merged_cache[entry.cache_key] = entry
+        write_translation_cache(Path(args.candidate_cache), merged_cache)
+        print(f"candidate cache updated: +{len(candidate_cache_updates)} -> {args.candidate_cache}")
+    if args.trace:
+        write_translation_trace(Path(args.trace), trace)
+        print(f"translation trace written: {len(trace)} rows -> {args.trace}")
     print(f"translate complete: {count} units -> {output}")
     return 0
 
@@ -218,19 +236,34 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         write_lore_index(lore_index_path, lore_index)
 
     overlay_existing_target(source, target, output)
+    candidate_cache_path = Path(args.candidate_cache) if args.candidate_cache else work_dir / "translation-candidates.json"
+    candidate_cache = read_translation_cache(candidate_cache_path)
+    candidate_cache_updates = []
+    translation_trace = []
+    provider = get_provider(args.provider)
     translated = translate_units(
         source_root=source,
         target_root=target,
         output_root=output,
         units=units,
         glossary=glossary,
-        provider=get_provider(args.provider),
+        provider=provider,
         memory=memory,
         lore_entries=lore_entries,
         lore_index=lore_index,
         states=states,
+        candidate_cache=candidate_cache,
+        candidate_cache_updates=candidate_cache_updates,
+        trace=translation_trace,
+        provider_name=args.provider,
         limit=args.limit,
     )
+    merged_candidate_cache = dict(candidate_cache)
+    for entry in candidate_cache_updates:
+        merged_candidate_cache[entry.cache_key] = entry
+    write_translation_cache(candidate_cache_path, merged_candidate_cache)
+    translation_trace_path = work_dir / "translation-trace.jsonl"
+    write_translation_trace(translation_trace_path, translation_trace)
 
     length_policy = read_length_policy(Path(args.length_policy)) if args.length_policy else None
     qa_units = units[: args.limit] if args.limit is not None else units
@@ -257,10 +290,22 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "glossary_audit": glossary_audit_summary,
         "terms": terms_summary,
         "translation_review": translation_review_summary,
+        "translation_cache": {
+            "path": str(candidate_cache_path),
+            "existing": len(candidate_cache),
+            "added": len(candidate_cache_updates),
+            "total": len(merged_candidate_cache),
+        },
+        "translation_trace": {
+            "path": str(translation_trace_path),
+            "rows": len(translation_trace),
+        },
         "artifacts": {
             "units": str(units_path),
             "tm": str(tm_path),
             "glossary_audit": str(glossary_audit_path) if glossary_audit_path else "",
+            "translation_candidates": str(candidate_cache_path),
+            "translation_trace": str(translation_trace_path),
             "term_candidates": str(term_candidates_path) if term_candidates_path else "",
             "refined_terms": str(refined_terms_path) if refined_terms_path else "",
             "term_review_csv": str(term_review_summary.get("review_csv", "")),
@@ -573,6 +618,8 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--lore", default="")
     translate.add_argument("--lore-index", default="")
     translate.add_argument("--state", default="")
+    translate.add_argument("--candidate-cache", default="", help="Optional provider candidate cache JSON to read and update.")
+    translate.add_argument("--trace", default="", help="Optional JSONL path for per-unit translation provenance.")
     translate.add_argument("--output", default="build/LLC_zh-CN")
     translate.add_argument("--provider", default="dry-run")
     translate.add_argument("--limit", type=int, default=None)
@@ -590,6 +637,7 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--include-internal", action="store_true")
     workflow_run.add_argument("--glossary", default="")
     workflow_run.add_argument("--state", default="")
+    workflow_run.add_argument("--candidate-cache", default="", help="Optional persistent provider candidate cache JSON.")
     workflow_run.add_argument("--lore", default="")
     workflow_run.add_argument("--lore-input", default="")
     workflow_run.add_argument("--lore-index", default="")

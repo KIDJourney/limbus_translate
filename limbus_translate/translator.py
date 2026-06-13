@@ -12,6 +12,12 @@ from .memory import MemoryEntry
 from .providers import TranslationProvider, TranslationRequest
 from .scanner import TranslationUnit, dump_json, get_data_list_match, load_json
 from .state import UnitState, is_locked, state_for_unit
+from .translation_cache import (
+    TranslationCacheEntry,
+    TranslationTraceEntry,
+    build_cache_key,
+    make_cache_entry,
+)
 
 
 def ensure_missing_data_list_record(output_data: Any, source_data: Any, unit: TranslationUnit) -> tuple[str, ...]:
@@ -44,6 +50,10 @@ def translate_units(
     lore_entries: list[LoreEntry] | None = None,
     lore_index: LoreIndex | None = None,
     states: dict[str, UnitState] | None = None,
+    candidate_cache: dict[str, TranslationCacheEntry] | None = None,
+    candidate_cache_updates: list[TranslationCacheEntry] | None = None,
+    trace: list[TranslationTraceEntry] | None = None,
+    provider_name: str = "",
     limit: int | None = None,
 ) -> int:
     changed_files: dict[str, object] = {}
@@ -51,9 +61,15 @@ def translate_units(
     selected = units[:limit] if limit is not None else units
     processed_count = 0
     for unit in selected:
+        translation_source = ""
+        cache_key = ""
+        context_hash = ""
+        glossary_hash = ""
+        glossary_terms = 0
         state = state_for_unit(unit, states or {})
         if state is not None and state.target_text:
             translated = state.target_text
+            translation_source = f"state:{state.status}"
         elif is_locked(unit, states or {}):
             continue
         else:
@@ -68,8 +84,11 @@ def translate_units(
             memory_entry = (memory or {}).get(unit.source_hash)
             if memory_entry is not None:
                 translated = memory_entry.target_text
+                translation_source = "memory"
             else:
                 matched = match_terms(unit.source_text, glossary)
+                request_glossary = [(term.source, term.target, term.note) for term in matched]
+                glossary_terms = len(request_glossary)
                 context = build_translation_context(
                     unit=unit,
                     source_data=source_cache[unit.relative_file],
@@ -79,13 +98,42 @@ def translate_units(
                     lore_entries=lore_entries or [],
                     lore_index=lore_index,
                 )
-                translated = provider.translate(
-                    TranslationRequest(
-                        source_text=unit.source_text,
-                        glossary=[(term.source, term.target, term.note) for term in matched],
-                        context=context.to_json(),
-                    )
+                context_json = context.to_json()
+                cache_key, context_hash, glossary_hash = build_cache_key(
+                    provider=provider_name,
+                    source_hash=unit.source_hash,
+                    context=context_json,
+                    glossary=request_glossary,
                 )
+                cached = (candidate_cache or {}).get(cache_key)
+                if cached is not None:
+                    translated = cached.target_text
+                    translation_source = "candidate_cache"
+                else:
+                    translated = provider.translate(
+                        TranslationRequest(
+                            source_text=unit.source_text,
+                            glossary=request_glossary,
+                            context=context_json,
+                        )
+                    )
+                    translation_source = "provider"
+                    if candidate_cache_updates is not None:
+                        candidate_cache_updates.append(
+                            make_cache_entry(
+                                cache_key=cache_key,
+                                provider=provider_name,
+                                source_hash=unit.source_hash,
+                                context_hash=context_hash,
+                                glossary_hash=glossary_hash,
+                                unit_id=unit.unit_id,
+                                stable_key=unit.stable_key,
+                                relative_file=unit.relative_file,
+                                json_path=unit.json_path,
+                                source_text=unit.source_text,
+                                target_text=translated,
+                            )
+                        )
         if unit.reason == "missing_target_record":
             path = ensure_missing_data_list_record(
                 changed_files[unit.relative_file],
@@ -95,6 +143,24 @@ def translate_units(
         else:
             path = tuple(unit.json_path.split("."))
         set_path(changed_files[unit.relative_file], path, translated)
+        if trace is not None:
+            trace.append(
+                TranslationTraceEntry(
+                    unit_id=unit.unit_id,
+                    stable_key=unit.stable_key,
+                    relative_file=unit.relative_file,
+                    json_path=unit.json_path,
+                    source_hash=unit.source_hash,
+                    source_text=unit.source_text,
+                    target_text=translated,
+                    translation_source=translation_source,
+                    provider=provider_name,
+                    cache_key=cache_key,
+                    context_hash=context_hash,
+                    glossary_hash=glossary_hash,
+                    glossary_terms=glossary_terms,
+                )
+            )
         processed_count += 1
     for relative_file, data in changed_files.items():
         dump_json(output_root / relative_file, data)

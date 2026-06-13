@@ -31,6 +31,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
+| 候选译文缓存 / Trace | 缓存 provider 候选译文并记录每条译文来源，避免重复模型调用并支持复盘 | 已完成初版；cache key 绑定 provider、source hash、context hash 和 glossary hash，workflow 默认产出候选缓存与 JSONL trace |
 | 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回、轻量 TF-IDF n-gram 和离线 hashed-vector index 初版 |
 | 端到端更新工作流 | 一条命令串联扫描、TM、术语候选审校包、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI 初版；正式上线仍需要人工审校与真实 provider 门禁 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
@@ -65,3 +66,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 12. 作为维护者，我希望一次上游更新能用一条命令产出待译单元、候选输出、QA 报告和 summary，便于交给审校继续处理。
 13. 作为审校者，我希望候选译文、源文、QA 问题和可修订译文在同一张表里，并能把确认结果回写为后续自动翻译不会覆盖的状态。
 14. 作为维护者，我希望每次使用 Paratranz 术语库前能自动发现空译名、多译名冲突和韩文残留，避免低质量术语污染模型上下文。
+15. 作为开发者，我希望真实模型调用结果能缓存，并能追踪每条译文来自人工 state、TM、候选缓存还是 provider，便于复盘和控制成本。

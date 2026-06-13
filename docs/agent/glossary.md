@@ -15,9 +15,11 @@
 | Eval comparison | 在同一 Gold set 上并排评估多个 provider/model，并按 pass rate 和 similarity 排名 |
 | TranslationUnit | 本项目内部待译单元，包含文件、JSON path、源文、目标文和缺译原因 |
 | TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
+| Candidate translation cache | Provider 候选译文缓存；key 绑定 provider、source hash、context hash 和 glossary hash，避免上下文变化时误复用 |
+| Translation trace | 每条译文处理的 JSONL provenance 记录，区分 `state:*`、`memory`、`candidate_cache` 和 `provider` |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |
 | LoreIndex | 由 `LoreEntry` 构建的离线 hashed-vector sparse index，用于缓存和验证世界观资料相似召回 |
-| Workflow run | `limbus_translate.cli workflow run` 的端到端更新入口，串联 scan、TM、可选 glossary audit、术语审校包、可选 lore 导入/索引、translate、QA、翻译审校包和 summary |
+| Workflow run | `limbus_translate.cli workflow run` 的端到端更新入口，串联 scan、TM、可选 glossary audit、术语审校包、可选 lore 导入/索引、translate/cache/trace、QA、翻译审校包和 summary |
 | Translation review pack | 从候选输出和 QA 报告导出的人工译文审校包，包含 `review.csv` 和 `review.jsonl`，approved 后可回写为 reviewed / locked state |
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
 | Term review pack | 从 `RefinedTerm` 导出的人工审校包，包含 `review.csv`、`review.jsonl` 和 Paratranz 候选导入 CSV |

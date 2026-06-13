@@ -2,6 +2,26 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — 候选译文缓存与 translation trace
+
+### 已完成
+
+- 新增 `limbus_translate/translation_cache.py`，提供 provider 候选译文缓存、cache key 生成和 translation trace 写出。
+- `translate` 新增 `--candidate-cache` 和 `--trace`；候选缓存会读取并回写，trace 逐条记录译文来源。
+- `workflow run` 默认输出 `translation-candidates.json` 和 `translation-trace.jsonl`，summary 新增 `translation_cache`、`translation_trace` 和 artifact 路径。
+- translator 的优先级为 state / locked state -> exact TM -> candidate cache -> provider；只有 provider 新调用会追加候选缓存。
+- cache key 绑定 provider、source hash、context hash 和 glossary hash，避免术语或 lore 上下文变化后误复用旧译文。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖第一次 provider 调用写 cache、第二次同上下文从 cache 复用且 provider 不再被调用，trace 来源从 `provider` 变为 `candidate_cache`。
+- `make smoke`：通过，fixture 生成 `build/translation-candidates.json`、`build/translation-trace.jsonl`，workflow summary 包含 `translation_cache` 和 `translation_trace`。
+- 真实 Localize checkout：workflow `--limit 1` 使用同一 `/tmp/limbus-real-candidates.json` 双跑，首跑 `added=1`，复跑 `added=0 existing=1`，第二次 trace 来源为 `candidate_cache`。
+
+### 风险
+
+- 缓存只保证同 provider 和同上下文复用，不判断译文质量；正式写入仍依赖 QA、review pack 和人工审校。
+
 ## 2026-06-13 — Paratranz 术语库审计
 
 ### 已完成
