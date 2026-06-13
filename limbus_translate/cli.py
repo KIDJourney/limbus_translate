@@ -56,7 +56,7 @@ from .scanner import (
     scan_missing,
     write_units,
 )
-from .state import UnitState, read_state, write_state
+from .state import UnitState, read_state, summarize_state_coverage, write_state
 from .terms import (
     extract_term_candidates,
     get_term_refiner,
@@ -659,6 +659,18 @@ def cmd_state_apply(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_state_status(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    summary = summarize_state_coverage(units, read_state(Path(args.state)))
+    if args.report:
+        Path(args.report).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.report).write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"state status: {summary['ready_units']}/{summary['total_units']} ready")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 1 if args.fail_if_pending and summary["pending_units"] else 0
+
+
 def cmd_eval_run(args: argparse.Namespace) -> int:
     cases = read_gold_cases(Path(args.gold))
     candidate_cache_path = Path(args.candidate_cache) if args.candidate_cache else None
@@ -1082,6 +1094,12 @@ def build_parser() -> argparse.ArgumentParser:
     state_apply.add_argument("--output", default="build/LLC_zh-CN-reviewed")
     state_apply.add_argument("--limit", type=int, default=None)
     state_apply.set_defaults(func=cmd_state_apply)
+    state_status = state_sub.add_parser("status")
+    state_status.add_argument("--units", default="build/missing-units.json")
+    state_status.add_argument("--state", required=True)
+    state_status.add_argument("--report", default="")
+    state_status.add_argument("--fail-if-pending", action="store_true")
+    state_status.set_defaults(func=cmd_state_status)
     return parser
 
 

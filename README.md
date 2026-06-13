@@ -156,6 +156,12 @@ python3 -m limbus_translate.cli state apply \
   --state cache/state/reviewed.json \
   --output build/LLC_zh-CN-reviewed
 
+python3 -m limbus_translate.cli state status \
+  --units build/missing-units.json \
+  --state cache/state/reviewed.json \
+  --report build/state-status.json \
+  --fail-if-pending
+
 python3 -m limbus_translate.cli eval build-gold \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
@@ -233,6 +239,8 @@ python3 -m limbus_translate.cli terms promote \
 `glossary merge` 可把 Paratranz 同步缓存、本地审校术语和本地 promoted 术语合成 active glossary。输入按顺序合并，后面的 cache 会覆盖前面同 Korean source 的译名，因此建议把 Paratranz 放在前面，把人工审校库放在后面。
 
 `state apply` 会把 reviewed / locked state 中已有 `target_text` 的单元写入同结构 JSON 输出树，未审校或没有译文的单元不会调用 provider，也不会生成候选译文。它适合在 `review apply` 之后产出人工确认后的发布候选目录。
+
+`state status` 会统计本次 units 中多少已经具备 reviewed / locked 且有译文的 ready 状态、多少仍 pending；传入 `--fail-if-pending` 可作为发布前门禁，避免未审校单元混入最终包。
 
 `tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 

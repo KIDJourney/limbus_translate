@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from .scanner import TranslationUnit
 
@@ -50,3 +51,36 @@ def state_for_unit(unit: TranslationUnit, states: dict[str, UnitState]) -> UnitS
 def is_locked(unit: TranslationUnit, states: dict[str, UnitState]) -> bool:
     state = state_for_unit(unit, states)
     return state is not None and state.status in LOCKED_STATUSES
+
+
+def summarize_state_coverage(units: list[TranslationUnit], states: dict[str, UnitState]) -> dict[str, Any]:
+    by_status: dict[str, int] = {}
+    ready_units = 0
+    with_target_text = 0
+    missing_state = 0
+    missing_target_text = 0
+    for unit in units:
+        state = state_for_unit(unit, states)
+        if state is None:
+            missing_state += 1
+            by_status["missing_state"] = by_status.get("missing_state", 0) + 1
+            continue
+        by_status[state.status] = by_status.get(state.status, 0) + 1
+        if state.target_text:
+            with_target_text += 1
+        else:
+            missing_target_text += 1
+        if state.status in LOCKED_STATUSES and state.target_text:
+            ready_units += 1
+    total_units = len(units)
+    pending_units = total_units - ready_units
+    return {
+        "total_units": total_units,
+        "ready_units": ready_units,
+        "pending_units": pending_units,
+        "with_target_text": with_target_text,
+        "missing_state": missing_state,
+        "missing_target_text": missing_target_text,
+        "by_status": dict(sorted(by_status.items())),
+        "ready": pending_units == 0,
+    }

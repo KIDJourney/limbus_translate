@@ -36,7 +36,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 端到端更新工作流 | 一条命令串联扫描、TM、术语候选审校包、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI，可从 Localize checkout/base/head 自动准备 changed-files 和 source-baseline；正式上线仍需要人工审校与真实 provider 门禁 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成候选翻译输出和 reviewed state 应用输出；可在人工审校后生成只包含确认译文的同结构发布候选目录 |
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 已完成 scan policy 配置层和 `dataList.id` 主键对齐初版；仍需按更多真实文件类型扩充规则库 |
-| 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版；翻译 review pack 可回写 reviewed / locked state，`state apply` 可把审校译文写回最终 JSON 树 |
+| 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版；翻译 review pack 可回写 reviewed / locked state，`state apply` 可把审校译文写回最终 JSON 树，`state status --fail-if-pending` 可做发布前审校门禁 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查和 MQM 风格分类 | 已完成初版；路径/risk 字符级 length policy 和估算显示宽度已完成，像素级 UI 容器测量未完成 |
 | Gold set / 模型评估 | 用固定样本评估 provider 翻译质量、成本和 prompt 变更风险 | 已完成从参考译文构建 gold set、分层采样、人工审校回写、单 provider eval report、多 provider compare report、eval candidate cache 和带响应 metadata / usage summary 的 eval request log 初版；真实模型赛马未完成 |
 | 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM、基础 fuzzy TM、基于 curated gold 的 TM 召回评估和离线 lore index 已完成；外部 embedding 向量库未完成，fuzzy 阈值仍需真实 curated gold 调参 |

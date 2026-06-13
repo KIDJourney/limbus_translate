@@ -59,7 +59,7 @@ LocalizeLimbusCompany checkout
 4. `lore import` 把世界观笔记导成 `cache/lore/world.json`；`lore index` 进一步构建 `cache/lore/world-index.json`，供翻译时按源文、术语、anchors 和离线向量相似度召回。
 5. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆；`tm evaluate` 用 curated gold set 评估 fuzzy TM top-k 召回、覆盖率、源文相似度、目标译文相似度和阈值 sweep。
 6. `translate` 读取待译单元、术语缓存、lore cache、TM 和可选 candidate cache，先查 state / exact TM；未命中时匹配术语并构建结构化 context bundle，按 provider、source hash、context hash 和 glossary hash 查候选缓存；仍未命中才调用 provider，并可把本次发送给 provider 的 source、glossary、context、返回译文、响应模型/id 和 token usage 写入 request log，再按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。开启 trace 时，每条处理结果都会记录译文来源。
-7. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿；`state apply` 可把 state 中已有 `target_text` 的人工确认译文直接写入最终同结构输出树，不调用 provider。
+7. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿；`state apply` 可把 state 中已有 `target_text` 的人工确认译文直接写入最终同结构输出树，不调用 provider；`state status --fail-if-pending` 可把未审校单元作为发布门禁。
 8. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险，可通过 `--length-policy` 按路径或 risk 覆盖字符级阈值，并按 `accuracy` / `terminology` / `format` / `locale_convention` / `design` 等 MQM 风格类别汇总。
 9. `eval build-gold` 从已有中译参考抽取回归样本，`eval sample-gold` 做分层抽样，`eval review-pack` / `eval apply-review` 把人工确认结果写成 curated gold；`eval run` 用 gold set 比较 provider 输出，生成 `build/eval-report.json`，并在启用 request log 时把 usage 聚合进 summary，用于模型赛马、成本复盘和 prompt 回归。
 10. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；传入 `--cache` 时会按规范化 source 复用历史 refined 结果，只把未命中候选交给 refiner，并把合并结果写回持久 cache；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
