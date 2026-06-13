@@ -23,6 +23,7 @@ from .state import UnitState, read_state, write_state
 from .terms import (
     extract_term_candidates,
     get_term_refiner,
+    glossary_terms_from_review_csv,
     promote_refined_terms,
     read_candidates,
     read_refined_terms,
@@ -154,6 +155,16 @@ def cmd_terms_review_pack(args: argparse.Namespace) -> int:
     )
     print(f"terms review-pack complete: {summary['selected']} terms -> {args.output_dir}")
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def cmd_terms_apply_review(args: argparse.Namespace) -> int:
+    reviewed = glossary_terms_from_review_csv(Path(args.review), provider=args.provider)
+    merged = [*read_cache(Path(args.merge))] if args.merge else []
+    write_cache(Path(args.output), [*merged, *reviewed])
+    print(f"terms apply-review complete: {len(reviewed)} approved terms -> {args.output}")
+    if args.merge:
+        print(f"merged with existing glossary: {len(merged)} terms")
     return 0
 
 
@@ -310,6 +321,12 @@ def build_parser() -> argparse.ArgumentParser:
     terms_review_pack.add_argument("--include-not-term", action="store_true")
     terms_review_pack.add_argument("--min-confidence", type=float, default=0.0)
     terms_review_pack.set_defaults(func=cmd_terms_review_pack)
+    terms_apply_review = terms_sub.add_parser("apply-review")
+    terms_apply_review.add_argument("--review", default="build/term-review/review.csv")
+    terms_apply_review.add_argument("--output", default="cache/glossary/local-reviewed.json")
+    terms_apply_review.add_argument("--merge", default="", help="Optional existing glossary cache to merge before writing.")
+    terms_apply_review.add_argument("--provider", default="local-reviewed")
+    terms_apply_review.set_defaults(func=cmd_terms_apply_review)
 
     state = sub.add_parser("state", help="Create or manage unit review state.")
     state_sub = state.add_subparsers(required=True)

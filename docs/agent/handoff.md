@@ -2,6 +2,27 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — 审校术语回写本地缓存
+
+### 已完成
+
+- 新增 `terms apply-review` CLI，读取人工审校后的 `review.csv` 并写出本地 reviewed glossary cache。
+- 只有 `approved` 明确为真且 `target` 非空的行会导入；未确认、空译名和留空候选会跳过。
+- `make smoke` 会模拟一条人工确认行，验证 `build/local-reviewed-glossary.json` schema。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖 approved 判定、空译名跳过和未确认行跳过。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，模拟 1 条审校确认后生成 `build/local-reviewed-glossary.json`。
+- 真实 Localize checkout 小样本：扫描 19 条，review pack 10 条；模拟确认 `찰-칵 -> 喀嚓` 后，`terms apply-review` 生成 1 条 reviewed glossary。
+
+### 风险
+
+- 当前回写目标仍是本地 glossary cache，不直接调用 Paratranz 写 API；平台正式 termbase 仍需要后续导入或 API 写入能力。
+
 ## 2026-06-13 — 术语审校与 Paratranz 候选导出包
 
 ### 已完成

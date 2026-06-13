@@ -11,6 +11,8 @@ from limbus_translate.terms import (
     RefinedTerm,
     extract_term_candidates,
     get_term_refiner,
+    glossary_terms_from_review_csv,
+    is_approved,
     promote_refined_terms,
     read_refined_terms,
     write_term_review_pack,
@@ -256,3 +258,59 @@ def test_write_term_review_pack_exports_review_and_paratranz_files() -> None:
     ]
     assert jsonl_rows[0]["source"] == "거울 던전"
     assert jsonl_rows[0]["approved"] == ""
+
+
+def test_glossary_terms_from_review_csv_imports_only_approved_rows() -> None:
+    with TemporaryDirectory() as temp_dir:
+        path = Path(temp_dir) / "review.csv"
+        with path.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["source", "target", "approved", "decision", "provider", "reason", "note"],
+            )
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "source": "거울 던전",
+                    "target": "镜牢",
+                    "approved": "yes",
+                    "decision": "term",
+                    "provider": "openai",
+                    "reason": "hangul_phrase",
+                    "note": "reviewed",
+                }
+            )
+            writer.writerow(
+                {
+                    "source": "지크프리트",
+                    "target": "齐格弗里德",
+                    "approved": "",
+                    "decision": "needs_review",
+                    "provider": "openai",
+                    "reason": "marked_name",
+                    "note": "not approved yet",
+                }
+            )
+            writer.writerow(
+                {
+                    "source": "W2사",
+                    "target": "",
+                    "approved": "通过",
+                    "decision": "term",
+                    "provider": "rules",
+                    "reason": "contains_number",
+                    "note": "missing target",
+                }
+            )
+        terms = glossary_terms_from_review_csv(path)
+
+    assert is_approved("yes")
+    assert is_approved("通过")
+    assert not is_approved("")
+    assert len(terms) == 1
+    assert terms[0].source == "거울 던전"
+    assert terms[0].target == "镜牢"
+    assert terms[0].provider == "local-reviewed"
+    assert terms[0].raw["approved"] == "yes"
+    assert "reviewed" in terms[0].note
+    assert "source_provider=openai" in terms[0].note

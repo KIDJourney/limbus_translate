@@ -81,6 +81,11 @@ python3 -m limbus_translate.cli terms review-pack \
   --refined cache/terms/refined.json \
   --output-dir build/term-review
 
+python3 -m limbus_translate.cli terms apply-review \
+  --review build/term-review/review.csv \
+  --output cache/glossary/local-reviewed.json \
+  --merge cache/glossary/paratranz-6860.json
+
 python3 -m limbus_translate.cli terms promote \
   --refined cache/terms/refined.json \
   --output cache/glossary/local-refined.json \
@@ -90,6 +95,8 @@ python3 -m limbus_translate.cli terms promote \
 `terms refine --provider openai` 可用于正式术语初筛和建议译名，但它依赖 OpenAI 可选依赖与 API key；输出仍应进入人工审校，不直接写入正式 termbase。
 
 `terms review-pack` 会从 refined cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。`review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据；`paratranz-import.csv` 只包含 `decision=term` 且已有 `suggested_target` 的候选，作为平台导入前的审校材料。
+
+`terms apply-review` 会读取审校后的 `review.csv`，只把 `approved` 为 `yes` / `true` / `1` / `通过` 等明确确认值且 `target` 非空的行写入本地 glossary cache。未确认、空译名和被留空的候选会被跳过。
 
 `terms promote` 只导出 `decision=term` 且存在 `suggested_target` 的记录；`needs_review` 不会进入正式术语缓存。
 

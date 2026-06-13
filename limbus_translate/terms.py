@@ -19,6 +19,7 @@ STOPWORDS = {
     "표시용",
     "더미",
 }
+APPROVED_VALUES = {"1", "true", "yes", "y", "approved", "approve", "ok", "是", "通过", "已确认", "确认"}
 
 
 @dataclass(frozen=True)
@@ -172,6 +173,54 @@ def promote_refined_terms(
             )
         )
     return promoted
+
+
+def is_approved(value: str) -> bool:
+    return value.strip().lower() in APPROVED_VALUES
+
+
+def glossary_terms_from_review_csv(
+    path: Path,
+    *,
+    provider: str = "local-reviewed",
+    source_lang: str = "ko",
+    target_lang: str = "zh-cn",
+) -> list[GlossaryTerm]:
+    fetched_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    terms: list[GlossaryTerm] = []
+    for index, row in enumerate(rows):
+        source = str(row.get("source", "")).strip()
+        target = str(row.get("target", "")).strip()
+        if not source or not target or not is_approved(str(row.get("approved", ""))):
+            continue
+        note_parts = [
+            str(row.get("note", "")).strip(),
+            f"review_decision={str(row.get('decision', '')).strip()}",
+            f"source_provider={str(row.get('provider', '')).strip()}",
+            f"reason={str(row.get('reason', '')).strip()}",
+        ]
+        terms.append(
+            GlossaryTerm(
+                provider=provider,
+                project_id=None,
+                term_id=index,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                source=source,
+                target=target,
+                note="; ".join(part for part in note_parts if part and not part.endswith("=")),
+                part_of_speech="",
+                variants=[],
+                case_sensitive=False,
+                created_at=None,
+                updated_at=fetched_at,
+                raw=dict(row),
+                fetched_at=fetched_at,
+            )
+        )
+    return terms
 
 
 def reviewable_terms(
