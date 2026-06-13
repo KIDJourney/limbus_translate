@@ -244,6 +244,8 @@ python3 -m limbus_translate.cli terms promote \
 
 `workflow finalize` 会在不调用翻译 provider 的前提下，把 reviewed / locked state 应用到同结构输出树，再对最终输出运行 QA 和全输出可见韩文残留审计，并把 `state-status.json`、`qa-report.json` 和 `summary.json` 写入工作目录。它适合人工审校后的发布候选收口；`--fail-if-pending` 用于拦截未审校单元，`--fail-on-error` 用于把 QA error 变成失败码。
 
+当前已审校的真实 LocalizeLimbusCompany 批次对应上游 commit `9184302e785805924807919587cd5264186b19eb`，reviewed state 已保存在 `data/state/localize-reviewed-9184302e.json`。清理 `build/` 后，可重新扫描并用该 state 复现 22 条 reviewed 单元和可应用 patch。
+
 `terms review-pack` 会从 refined cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。`review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据；`paratranz-import.csv` 只包含 `decision=term` 且已有 `suggested_target` 的候选，作为平台导入前的审校材料。
 
 `terms apply-review` 会读取审校后的 `review.csv`，只把 `approved` 为 `yes` / `true` / `1` / `通过` 等明确确认值且 `target` 非空的行写入本地 glossary cache。未确认、空译名和被留空的候选会被跳过。

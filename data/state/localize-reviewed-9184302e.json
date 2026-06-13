@@ -1,0 +1,178 @@
+[
+  {
+    "unit_id": "6a509f112e4eb999",
+    "source_hash": "eac7ae59cf75b1a2",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "砰",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "5054560787e2438c",
+    "source_hash": "c609685dc70a90e8",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "在很久以前……据说也曾有过信仰神明的时代。",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "41694b6699447a60",
+    "source_hash": "a7b7baff604cd36d",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "叮咚叮咚（学校铃声）",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "51b351e4114b0eaa",
+    "source_hash": "9d4ba573229596b4",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "狮，你还要趴到什么时候？没时间了。",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "09d6a68ab710c93f",
+    "source_hash": "3eb0ba20380b1002",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "……是啊，你说得对。确实没必要白白拖时间。",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "6513287e544b45f4",
+    "source_hash": "f96a1cc341d61c7c",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "啊～拖得太久了。现在就真的结束吧！",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "bebf24bdfd7e68b3",
+    "source_hash": "31b726034686fa01",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "这里镜头震动的时机对不上，有没有更好的办法……",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "f92798fbc029b704",
+    "source_hash": "0339a8c4cb4d036b",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "哐！哐！哐！（铁门重重砸下的声音）",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "7338c806046c3356",
+    "source_hash": "024dc117fe76bd27",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "警报声",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "c3940f62fb48d48e",
+    "source_hash": "fabc96cc79a05957",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "枪声与爆炸声",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "088c051af07c7e65",
+    "source_hash": "5339b9932722c87c",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "咔嚓！",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "15371953e1b0a52f",
+    "source_hash": "2a713d823eb97b76",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "齐格飞一边杀死罪人们，一边自拍。",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "4262f3fab720a0a0",
+    "source_hash": "1a804564a616f15f",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "SE // 哗啦！",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "50fa9c62836b689b",
+    "source_hash": "45f3c80104389e5b",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "无线电声",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "73eb3e28d15c33f4",
+    "source_hash": "61470d5bd68aa64c",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "地狱般诡异的尖叫声",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "55aa24faff017be9",
+    "source_hash": "019ebe2f63f47796",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "扑通。",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "03dcbe3dabe42e4f",
+    "source_hash": "6c08ba049f648580",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "噗嗤！噗嗤！噗嗤！噗嗤！",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "d1500f0637d37b58",
+    "source_hash": "b597386c2a7c3274",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "砰！砰！砰！",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "f0dcf4d139a02d42",
+    "source_hash": "e11d4924886600e8",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "扑通",
+    "note": "manual candidate from real Localize sample, 2026-06-14"
+  },
+  {
+    "unit_id": "55c20fef37977f66",
+    "source_hash": "ebffc5e113501903",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "狼",
+    "note": "Paratranz term match, 2026-06-14"
+  },
+  {
+    "unit_id": "ac43a0aae84de0fd",
+    "source_hash": "df410774e3dd128a",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "狮",
+    "note": "Paratranz term match, 2026-06-14"
+  },
+  {
+    "unit_id": "f8bf7b80110df414",
+    "source_hash": "df410774e3dd128a",
+    "stable_key": null,
+    "status": "reviewed",
+    "target_text": "狮",
+    "note": "Paratranz term match, 2026-06-14"
+  }
+]

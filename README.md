@@ -264,6 +264,8 @@ python3 -m limbus_translate.cli terms promote \
 
 `workflow finalize` 会在不调用 provider 的前提下串联 `state status`、reviewed state 应用、最终 QA 和全输出可见韩文残留审计，输出发布候选目录以及 `state-status.json`、`qa-report.json`、`summary.json`。它适合人工审校完成后做发布前收口；`--fail-if-pending` 会拦截仍未审校的单元，`--fail-on-error` 会拦截 QA error。
 
+当前已审校的真实 LocalizeLimbusCompany 批次对应上游 commit `9184302e785805924807919587cd5264186b19eb`，reviewed state 已保存在 `data/state/localize-reviewed-9184302e.json`。清理 `build/` 后，可重新扫描并用该 state 复现 22 条 reviewed 单元和可应用 patch。
+
 `tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 
 `eval sample-gold` 可按 `tag` / `risk` / `file` 分层抽样，避免评估集过度偏向单一文本类型；`eval review-pack` 会导出 `review.csv` 和 `review.jsonl` 供人工确认，`eval apply-review` 只把 `approved` 明确为真且能匹配原始 gold case 的行写回 curated gold set，并保留原始 glossary / context / tags。`--provider` 支持 `dry-run`、`openai`、`openai:<model>`、`openai-chat`、`openai-chat:<model>`、`qwen-mt` 和 `qwen-mt:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。`eval run` / `eval compare` 支持 `--candidate-cache` 和 `--request-log`，cache key 使用 provider spec 而不是 label，因此同一模型改名比较不会重复调用；request log 同样记录 `target_text`、响应 metadata 和 `usage`，report summary 会按 provider 和 response model 聚合 token 用量。

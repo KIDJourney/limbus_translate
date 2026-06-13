@@ -2,6 +2,26 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-14 — 当前真实批次 reviewed state 可复现
+
+### 已完成
+
+- 当前 LocalizeLimbusCompany 上游 `main` 确认为 `9184302e785805924807919587cd5264186b19eb`。
+- 当前真实扫描结果为 22 条 `target_same_as_source`，其中包含 19 条 content 和 3 条 `StoryData/S001A` 可见 `teller`。
+- 22 条 reviewed 译文已从 ignored `build/real-translation/reviewed-state.json` 固化到可追踪文件 `data/state/localize-reviewed-9184302e.json`。
+- `workflow finalize` 当前会输出可应用 patch，并在 summary 中记录全输出可见韩文残留审计。
+
+### 验证状态
+
+- `python3 -m limbus_translate.cli scan --source build/real-localize/KR --target build/real-localize/LLC_zh-CN --output build/current-real/missing-units.json --scan-policy config/scan-policy.sample.json`：22 units。
+- `workflow finalize` 使用 `data/state/localize-reviewed-9184302e.json`：22/22 reviewed，QA 0，patch 22 replacements / 11 files，`apply_check=true`。
+- Visible Hangul audit：total 269，allowed glossary 27，allowed source note 1，suppressed internal 241，warnings 0。
+- 当前 patch：`build/current-real/finalize/localize-translation.patch`。
+
+### 风险
+
+- `data/state/localize-reviewed-9184302e.json` 只对应该上游 commit；上游更新后仍需重新 scan，并对新增/变化 units 追加新的 reviewed state。
+
 ## 2026-06-14 — Refined term cache 跨更新复用
 
 ### 已完成
