@@ -8,6 +8,13 @@
       "risk": "high"
     },
     {
+      "name": "keep story speaker names as visible text",
+      "action": "include",
+      "relative_file_prefix": "StoryData/",
+      "json_path_suffix": ".teller",
+      "risk": "high"
+    },
+    {
       "name": "suppress unused Korean dummy descriptions",
       "action": "exclude",
       "key": "desc",

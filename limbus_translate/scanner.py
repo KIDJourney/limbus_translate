@@ -361,7 +361,15 @@ def scan_missing(
                                 reason = "source_changed"
                             else:
                                 continue
-                        if candidate == text_node.value and not include_internal:
+                        if (
+                            candidate == text_node.value
+                            and not include_internal
+                            and not (
+                                policy_rule is not None
+                                and policy_rule.action == "include"
+                                and text_node.key == "teller"
+                            )
+                        ):
                             if should_suppress_same_source(relative, text_node.path_id, text_node.value):
                                 continue
                         if reason != "source_changed":
