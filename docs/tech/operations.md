@@ -15,17 +15,19 @@ rg "TODO|待确认|阻塞" docs
 ## CLI 命令
 
 ```bash
-git -C /path/to/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > build/changed-files.txt
-mkdir -p build/source-baseline
-git -C /path/to/LocalizeLimbusCompany archive HEAD~1 KR | tar -x -C build/source-baseline
+python3 -m limbus_translate.cli localize prepare-update \
+  --repo /path/to/LocalizeLimbusCompany \
+  --base HEAD~1 \
+  --head HEAD \
+  --work-dir build/localize-update
 
 python3 -m limbus_translate.cli scan \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output build/missing-units.json \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt \
-  --source-baseline build/source-baseline/KR
+  --changed-files build/localize-update/changed-files.txt \
+  --source-baseline build/localize-update/source-baseline/KR
 
 python3 -m limbus_translate.cli glossary sync-paratranz \
   --project-id 6860 \
@@ -64,8 +66,8 @@ python3 -m limbus_translate.cli workflow run \
   --output build/LLC_zh-CN \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt \
-  --source-baseline build/source-baseline/KR \
+  --changed-files build/localize-update/changed-files.txt \
+  --source-baseline build/localize-update/source-baseline/KR \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --terms-cache cache/terms/refined-cache.json \
@@ -180,6 +182,8 @@ python3 -m limbus_translate.cli terms promote \
 `terms refine --cache` 会读取并更新持久 refined cache。命中缓存的 source 不会再次调用 refiner，而是复用旧 decision、suggested target 和 note，同时刷新本轮 contexts、count 与 sample text；未命中的候选才交给 `rules` 或 `openai`。`terms refine --provider openai` 可用于正式术语初筛和建议译名，但它依赖 OpenAI 可选依赖与 API key；输出仍应进入人工审校，不直接写入正式 termbase。
 
 `scan --scan-policy` 接受 JSON 策略文件，当前示例为 `config/scan-policy.sample.json`。规则按顺序匹配，支持 `include` / `exclude` 两种 action，并可按 `relative_file`、`relative_file_prefix`、`json_path`、`json_path_suffix`、`key`、`source_contains` 过滤。`include` 可把非默认文本 key 纳入扫描并可覆盖 `risk`；`exclude` 用于过滤内部事件名、占位文案、无用文本或特定文件类型的噪声。不传该参数时扫描行为保持内置默认。
+
+`localize prepare-update` 从 LocalizeLimbusCompany checkout 的 `--base..--head` 自动生成 `changed-files.txt`，并用 `git archive` 把 `--base` 的 `KR` 目录导出为 `source-baseline/KR`，减少每次上游更新前的手工 git 命令。
 
 `scan --changed-files` 接受 `git diff --name-only` 生成的换行分隔文件清单，只扫描涉及的 JSON 相对文件。路径可以是仓库根目录形式的 `KR/Foo.json` / `LLC_zh-CN/Foo.json`，也可以是语言目录内的 `Foo.json`；非 JSON 文件会被忽略。该参数用于 RAW/GTP 更新后把扫描范围收敛到本次变更，减少全量扫描和人工审查成本。
 

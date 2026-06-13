@@ -16,6 +16,7 @@ LocalizeLimbusCompany checkout
     -> memory.py: exact translation memory
     -> context.py: structured context bundle for provider prompts
     -> translation_cache.py: provider candidate cache, request log and translation trace
+    -> localize.py: update input preparation from git commits
     -> state.py: reviewed / locked unit state
     -> providers.py: dry-run / OpenAI provider
     -> evaluation.py: gold set provider regression
@@ -35,6 +36,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy、changed-files 文件级增量扫描和 source-baseline JSON path 级源文变化扫描 |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配和术语库质量审计 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，构建离线 hashed-vector 索引，并按 anchors、术语、TF-IDF 字符 n-gram 或索引相似度召回 lore 片段 |
+| `limbus_translate/localize.py` | 从 LocalizeLimbusCompany checkout 的两个 commit 生成 changed-files 清单和上一版 `KR` source baseline |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆，并用 curated gold set 评估 fuzzy TM 召回覆盖率和目标译文相似度 |
 | `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、缺译原因、旧目标译文、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段 |
 | `limbus_translate/evaluation.py` | 从参考译文构建 gold set；导出/导入人工审校 gold；调用 provider，输出相似度、格式一致性、术语命中和 pass rate 报告 |
@@ -51,18 +53,19 @@ LocalizeLimbusCompany checkout
 
 ## 数据流
 
-1. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，也可读取 `--changed-files` 把范围收敛到本次 git diff 涉及的 JSON 文件；如果传入 `--source-baseline`，会按 JSON path 和 `dataList[id=...]` 稳定键只保留源文新增/变化的路径，并把目标已有旧中文的单元标记为 `source_changed`。输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
-2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语；`glossary audit` 检查空源文、空译名、同源多译名冲突、译文韩文残留和重复项。
-3. `lore import` 把世界观笔记导成 `cache/lore/world.json`；`lore index` 进一步构建 `cache/lore/world-index.json`，供翻译时按源文、术语、anchors 和离线向量相似度召回。
-4. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆；`tm evaluate` 用 curated gold set 评估 fuzzy TM top-k 召回、覆盖率、源文相似度、目标译文相似度和阈值 sweep。
-5. `translate` 读取待译单元、术语缓存、lore cache、TM 和可选 candidate cache，先查 state / exact TM；未命中时匹配术语并构建结构化 context bundle，按 provider、source hash、context hash 和 glossary hash 查候选缓存；仍未命中才调用 provider，并可把本次发送给 provider 的 source、glossary、context、返回译文、响应模型/id 和 token usage 写入 request log，再按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。开启 trace 时，每条处理结果都会记录译文来源。
-6. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
-7. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险，可通过 `--length-policy` 按路径或 risk 覆盖字符级阈值，并按 `accuracy` / `terminology` / `format` / `locale_convention` / `design` 等 MQM 风格类别汇总。
-8. `eval build-gold` 从已有中译参考抽取回归样本，`eval sample-gold` 做分层抽样，`eval review-pack` / `eval apply-review` 把人工确认结果写成 curated gold；`eval run` 用 gold set 比较 provider 输出，生成 `build/eval-report.json`，并在启用 request log 时把 usage 聚合进 summary，用于模型赛马、成本复盘和 prompt 回归。
-9. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；传入 `--cache` 时会按规范化 source 复用历史 refined 结果，只把未命中候选交给 refiner，并把合并结果写回持久 cache；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
-10. `review pack` 把候选译文、源文、原目标文本、QA severity/code/message 导出为人工审校 CSV/JSONL；`review apply` 把明确 approved 的行回写为 `reviewed` 或 `locked` state。
-11. `workflow run` 把 scan、TM 构建、可选 source-baseline 源文 path diff、可选 glossary audit、术语候选提取/refine/cache/review pack、可选 lore 导入/索引、translate、candidate cache、provider request log、usage summary、translation trace、QA 和 translation review pack 串成一次可复现更新，输出工作目录内的 `missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-requests.jsonl`、`translation-trace.jsonl`、`term-candidates.json`、`refined-terms.json`、`term-review/`、可选 refined term cache、可选 lore cache/index、`qa-report.json`、`translation-review/` 和 `summary.json`。
-12. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+1. `localize prepare-update` 可先从 LocalizeLimbusCompany checkout 的 `base..head` 生成 `changed-files.txt` 和上一版 `source-baseline/KR`。
+2. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，也可读取 `--changed-files` 把范围收敛到本次 git diff 涉及的 JSON 文件；如果传入 `--source-baseline`，会按 JSON path 和 `dataList[id=...]` 稳定键只保留源文新增/变化的路径，并把目标已有旧中文的单元标记为 `source_changed`。输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
+3. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语；`glossary audit` 检查空源文、空译名、同源多译名冲突、译文韩文残留和重复项。
+4. `lore import` 把世界观笔记导成 `cache/lore/world.json`；`lore index` 进一步构建 `cache/lore/world-index.json`，供翻译时按源文、术语、anchors 和离线向量相似度召回。
+5. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆；`tm evaluate` 用 curated gold set 评估 fuzzy TM top-k 召回、覆盖率、源文相似度、目标译文相似度和阈值 sweep。
+6. `translate` 读取待译单元、术语缓存、lore cache、TM 和可选 candidate cache，先查 state / exact TM；未命中时匹配术语并构建结构化 context bundle，按 provider、source hash、context hash 和 glossary hash 查候选缓存；仍未命中才调用 provider，并可把本次发送给 provider 的 source、glossary、context、返回译文、响应模型/id 和 token usage 写入 request log，再按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。开启 trace 时，每条处理结果都会记录译文来源。
+7. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
+8. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险，可通过 `--length-policy` 按路径或 risk 覆盖字符级阈值，并按 `accuracy` / `terminology` / `format` / `locale_convention` / `design` 等 MQM 风格类别汇总。
+9. `eval build-gold` 从已有中译参考抽取回归样本，`eval sample-gold` 做分层抽样，`eval review-pack` / `eval apply-review` 把人工确认结果写成 curated gold；`eval run` 用 gold set 比较 provider 输出，生成 `build/eval-report.json`，并在启用 request log 时把 usage 聚合进 summary，用于模型赛马、成本复盘和 prompt 回归。
+10. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；传入 `--cache` 时会按规范化 source 复用历史 refined 结果，只把未命中候选交给 refiner，并把合并结果写回持久 cache；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
+11. `review pack` 把候选译文、源文、原目标文本、QA severity/code/message 导出为人工审校 CSV/JSONL；`review apply` 把明确 approved 的行回写为 `reviewed` 或 `locked` state。
+12. `workflow run` 把 scan、TM 构建、可选 source-baseline 源文 path diff、可选 glossary audit、术语候选提取/refine/cache/review pack、可选 lore 导入/索引、translate、candidate cache、provider request log、usage summary、translation trace、QA 和 translation review pack 串成一次可复现更新，输出工作目录内的 `missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-requests.jsonl`、`translation-trace.jsonl`、`term-candidates.json`、`refined-terms.json`、`term-review/`、可选 refined term cache、可选 lore cache/index、`qa-report.json`、`translation-review/` 和 `summary.json`。
+13. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 `TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`reason`、`risk`、`previous_target_text`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `previous_target_text` 只在 `source_changed` 且旧目标译文是中文时填充，用于让 provider 修订旧译文；`neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存。未提供 index 时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；提供 `--lore-index` 时使用离线 hashed-vector index 召回。当前还不是外部 embedding 服务或经过 gold set 调参的完整 RAG。
 

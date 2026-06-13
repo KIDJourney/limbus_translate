@@ -31,22 +31,24 @@ make sync-glossary
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 
 ```bash
-git -C /path/to/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > build/changed-files.txt
-mkdir -p build/source-baseline
-git -C /path/to/LocalizeLimbusCompany archive HEAD~1 KR | tar -x -C build/source-baseline
+python3 -m limbus_translate.cli localize prepare-update \
+  --repo /path/to/LocalizeLimbusCompany \
+  --base HEAD~1 \
+  --head HEAD \
+  --work-dir build/localize-update
 
 python3 -m limbus_translate.cli scan \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output build/missing-units.json \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt \
-  --source-baseline build/source-baseline/KR
+  --changed-files build/localize-update/changed-files.txt \
+  --source-baseline build/localize-update/source-baseline/KR
 ```
 
 `--scan-policy` 接受 JSON 规则文件，支持按 `relative_file`、`relative_file_prefix`、`json_path`、`json_path_suffix`、`key` 和 `source_contains` 做 `include` / `exclude`。这用于把特定文件里的可见文本路径纳入扫描，也用于过滤内部事件名、显示占位和无用文本等噪声；不传该参数时仍使用内置默认规则。
 
-`--changed-files` 接受 `git diff --name-only` 这类换行分隔清单，只扫描清单中涉及的 JSON 相对文件；`KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 都会归一化为同一个相对路径，非 JSON 行会被忽略。不传该参数时执行全量扫描。
+`localize prepare-update` 会从 LocalizeLimbusCompany checkout 的 `--base..--head` 生成 `changed-files.txt`，并把 `--base` 的 `KR` 目录导出到 `source-baseline/KR`。`--changed-files` 接受 `git diff --name-only` 这类换行分隔清单，只扫描清单中涉及的 JSON 相对文件；`KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 都会归一化为同一个相对路径，非 JSON 行会被忽略。不传该参数时执行全量扫描。
 
 `--source-baseline` 接受上一个版本的 `KR` 目录，用于 JSON path 级源文 diff。传入后，扫描只处理当前源文中相对 baseline 新增或变化的文本；如果目标里已有旧中文，也会以 `source_changed` 原因重新进入待译列表。
 
@@ -59,8 +61,8 @@ python3 -m limbus_translate.cli workflow run \
   --output build/LLC_zh-CN \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/changed-files.txt \
-  --source-baseline build/source-baseline/KR \
+  --changed-files build/localize-update/changed-files.txt \
+  --source-baseline build/localize-update/source-baseline/KR \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --terms-cache cache/terms/refined-cache.json \

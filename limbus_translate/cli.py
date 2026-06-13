@@ -29,6 +29,7 @@ from .lore import (
     write_lore_cache,
     write_lore_index,
 )
+from .localize import prepare_localize_update, prepared_update_payload
 from .memory import build_memory, evaluate_memory_retrieval, read_memory, write_memory, write_memory_evaluation_report
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
@@ -434,6 +435,20 @@ def cmd_lore_import(args: argparse.Namespace) -> int:
     entries = import_lore(Path(args.input))
     write_lore_cache(Path(args.output), entries)
     print(f"lore import complete: {len(entries)} entries -> {args.output}")
+    return 0
+
+
+def cmd_localize_prepare_update(args: argparse.Namespace) -> int:
+    update = prepare_localize_update(
+        repo=Path(args.repo),
+        base=args.base,
+        head=args.head,
+        work_dir=Path(args.work_dir),
+        language_dir=args.language_dir,
+    )
+    payload = prepared_update_payload(update)
+    print(f"localize update prepared: {update.changed_count} changed files -> {args.work_dir}")
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     return 0
 
 
@@ -857,6 +872,16 @@ def build_parser() -> argparse.ArgumentParser:
     lore_search.add_argument("--limit", type=int, default=5)
     lore_search.add_argument("--output", default="")
     lore_search.set_defaults(func=cmd_lore_search)
+
+    localize = sub.add_parser("localize", help="Prepare inputs from a LocalizeLimbusCompany checkout.")
+    localize_sub = localize.add_subparsers(required=True)
+    prepare_update = localize_sub.add_parser("prepare-update")
+    prepare_update.add_argument("--repo", required=True, help="LocalizeLimbusCompany checkout path.")
+    prepare_update.add_argument("--base", default="HEAD~1", help="Base commit for source baseline and diff.")
+    prepare_update.add_argument("--head", default="HEAD", help="Head commit for changed-file diff.")
+    prepare_update.add_argument("--work-dir", default="build", help="Directory for changed-files and source-baseline.")
+    prepare_update.add_argument("--language-dir", default="KR", help="Source language directory to archive from base.")
+    prepare_update.set_defaults(func=cmd_localize_prepare_update)
 
     qa = sub.add_parser("qa", help="Check translated output against source units.")
     qa.add_argument("--units", default="build/missing-units.json")
