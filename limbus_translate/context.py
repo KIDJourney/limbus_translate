@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from difflib import SequenceMatcher
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -24,6 +25,7 @@ class ContextSnippet:
     json_path: str
     source_text: str
     target_text: str
+    score: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -108,20 +110,33 @@ def memory_snippets(
     memory: dict[str, MemoryEntry],
     *,
     limit: int,
+    min_similarity: float = 0.35,
 ) -> list[ContextSnippet]:
-    entries = [
-        entry
-        for entry in memory.values()
-        if entry.relative_file == unit.relative_file and entry.source_hash != unit.source_hash
-    ]
-    entries.sort(key=lambda entry: entry.json_path)
+    scored_entries: list[tuple[float, int, MemoryEntry]] = []
+    for entry in memory.values():
+        if entry.source_hash == unit.source_hash:
+            continue
+        score = source_similarity(unit.source_text, entry.source_text)
+        same_file = 1 if entry.relative_file == unit.relative_file else 0
+        if same_file or score >= min_similarity:
+            scored_entries.append((score, same_file, entry))
+    scored_entries.sort(key=lambda item: (-item[1], -item[0], item[2].relative_file, item[2].json_path))
     return [
         ContextSnippet(
-            role="memory",
+            role="memory" if same_file else "similar_memory",
             relative_file=entry.relative_file,
             json_path=entry.json_path,
             source_text=entry.source_text,
             target_text=entry.target_text,
+            score=round(score, 4),
         )
-        for entry in entries[:limit]
+        for score, same_file, entry in scored_entries[:limit]
     ]
+
+
+def source_similarity(left: str, right: str) -> float:
+    left_norm = " ".join(left.split())
+    right_norm = " ".join(right.split())
+    if not left_norm or not right_norm:
+        return 0.0
+    return SequenceMatcher(None, left_norm, right_norm).ratio()

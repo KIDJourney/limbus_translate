@@ -112,3 +112,58 @@ def test_translate_provider_receives_structured_context() -> None:
     assert any(item["target_text"] == "但丁" for item in context["neighbors"])
     assert any(item["target_text"] == "确认了战斗记录。" for item in context["neighbors"])
     assert context["memory_examples"][0]["source_text"] == "전투 기록을 확인했다."
+
+
+def test_context_includes_cross_file_similar_memory() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "KR"
+        target = root / "LLC_zh-CN"
+        output = root / "out"
+        source.mkdir()
+        target.mkdir()
+        (source / "Sample.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": "거울 던전에 들어간다."}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (target / "Sample.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": ""}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        provider = CapturingProvider()
+        memory = {
+            "similar": MemoryEntry(
+                source_hash=text_hash("거울 던전으로 들어간다."),
+                source_text="거울 던전으로 들어간다.",
+                target_text="进入镜牢。",
+                relative_file="Other.json",
+                json_path="dataList.0.desc",
+            ),
+            "unrelated": MemoryEntry(
+                source_hash=text_hash("버스가 멈췄다."),
+                source_text="버스가 멈췄다.",
+                target_text="巴士停下了。",
+                relative_file="Other.json",
+                json_path="dataList.1.desc",
+            ),
+        }
+
+        units = scan_missing(source, target)
+        overlay_existing_target(source, target, output)
+        translate_units(
+            source_root=source,
+            target_root=target,
+            output_root=output,
+            units=units,
+            glossary=[],
+            provider=provider,
+            memory=memory,
+        )
+
+    context = json.loads(provider.requests[0].context)
+    examples = context["memory_examples"]
+    assert examples[0]["role"] == "similar_memory"
+    assert examples[0]["source_text"] == "거울 던전으로 들어간다."
+    assert examples[0]["target_text"] == "进入镜牢。"
+    assert examples[0]["score"] >= 0.35
+    assert all(item["target_text"] != "巴士停下了。" for item in examples)

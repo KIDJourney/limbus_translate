@@ -30,12 +30,12 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选 |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
-| 翻译上下文包 | 将同文件邻近文本、exact TM 示例和术语命中注入 provider context | 已完成轻量 ContextBundle 初版 |
+| 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例和术语命中注入 provider context | 已完成轻量 ContextBundle 初版 |
 | 同结构输出 | 生成目标 JSON 树，保持原始路径和 JSON path | 已完成初版 |
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 部分完成，需继续细化 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查 | 已完成初版 |
-| 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM 和 ContextBundle/RAG 雏形已完成；fuzzy TM、世界观资料检索、向量检索未完成 |
+| 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM 和基础 fuzzy TM 已完成；世界观资料检索、向量检索和 gold set 调参未完成 |
 
 ## 当前不做
 

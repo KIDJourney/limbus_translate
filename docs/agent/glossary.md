@@ -10,6 +10,6 @@
 | TM | Translation Memory，句段级翻译记忆，用于复用已审校译文 |
 | RAG | 检索增强生成，用世界观、角色和相似句上下文辅助翻译 |
 | TranslationUnit | 本项目内部待译单元，包含文件、JSON path、源文、目标文和缺译原因 |
-| TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本和同文件 TM 示例；不是完整外部 RAG |
+| TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM 和基础 fuzzy TM 示例；不是完整外部 RAG |
 | `dry-run` provider | 不调用外部模型，只输出 `[待译] 源文`，用于验证扫描和写回链路 |
 | MQM | Multidimensional Quality Metrics，本地化质量评估框架 |

@@ -30,7 +30,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
-| `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、风险、术语、同文件邻近文本和同文件 TM 示例 |
+| `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、风险、术语、同文件邻近文本、同文件 TM 和跨文件相似 TM 示例 |
 | `limbus_translate/state.py` | 维护 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元 |
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底；接收 `TranslationRequest.context` 结构化 JSON 上下文 |
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；非 exact TM 命中时构建上下文包并传给 provider；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
@@ -51,7 +51,7 @@ LocalizeLimbusCompany checkout
 7. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review` 后进入人工审校或正式 termbase。
 8. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
-`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 当前是同文件 exact TM 示例，不是 fuzzy TM 或外部向量检索。
+`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例；这还不是向量检索或经过 gold set 调参的完整 RAG。
 
 ## 设计原则
 
