@@ -69,6 +69,17 @@ make prepare-current-model-eval
 
 该命令不会调用翻译 provider，只会从当前 LocalizeLimbusCompany `KR` / `LLC_zh-CN` 中构建 gold set、分层抽样，并导出 `build/current-model-eval/gold-review/review.csv` 供人工确认；确认后再用 `eval compare` 比较 qwen / openai 等 provider。
 
+确认 gold review 后可以一键比较 provider：
+
+```bash
+make compare-current-models
+
+PROVIDERS='qwen=qwen-mt:qwen-mt-plus gpt=openai:gpt-4.1' \
+make compare-current-models
+```
+
+默认 provider 是 `baseline=dry-run`，用于验证评估管线；真实 provider 会先执行环境预检。
+
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 
 ```bash
