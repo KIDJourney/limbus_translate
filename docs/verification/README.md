@@ -9,6 +9,7 @@
 | [scenarios.md](scenarios.md) | 按业务场景组织的验证方式和通过标准 |
 | [methods.md](methods.md) | 自动化、手动、设计走查、E2E、发布、回滚等验证方法 |
 | [verification-log.md](verification-log.md) | 最近验证记录、命令输出摘要、证据、风险和未覆盖项 |
+| [goal-audit.md](goal-audit.md) | 用户原始目标的逐项完成证据、当前产物和剩余外部门槛 |
 
 ## 维护规则
 
