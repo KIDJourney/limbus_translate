@@ -28,6 +28,24 @@ make smoke
 make sync-glossary
 ```
 
+真实 LocalizeLimbusCompany 更新的默认入口：
+
+```bash
+# 生成待审包：扫描 GitHub LLC_zh-CN 缺口、生成术语候选和翻译审校 CSV
+make prepare-current-localize-review
+
+# 真实 provider 首跑前先做环境预检；不会调用外部 API，也不会输出密钥
+PROVIDER=qwen-mt make check-provider-env
+
+# 有 key 后先跑 1 条候选，控制成本和风险
+LIMIT=1 PROVIDER=qwen-mt make prepare-current-localize-review
+
+# 已有人审 state 后，复现并发布可应用 patch artifact
+make publish-current-localize-artifact
+```
+
+当前真实批次产物位于 `artifacts/localize-9184302e/`，包含可应用到 LocalizeLimbusCompany `9184302e785805924807919587cd5264186b19eb` 的 `localize-translation.patch`、22 条翻译明细 `translations.json` 和验证摘要 `summary.json`。该 patch 是 gap-only：保留 GitHub `LLC_zh-CN` 现有中文，只替换 22 个目标仍为韩文的缺口。
+
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 
 ```bash
