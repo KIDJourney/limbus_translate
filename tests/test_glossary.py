@@ -1,4 +1,4 @@
-from limbus_translate.glossary import GlossaryTerm, audit_terms, match_terms
+from limbus_translate.glossary import GlossaryTerm, audit_terms, match_terms, merge_glossary_terms
 
 
 def test_match_terms_uses_source_and_variants() -> None:
@@ -45,6 +45,25 @@ def test_audit_terms_reports_conflicts_and_invalid_rows() -> None:
     assert report.by_code["target_contains_hangul"] == 1
     assert report.by_code["empty_source"] == 1
     assert report.by_severity["warning"] >= 4
+
+
+def test_merge_glossary_terms_later_inputs_override_same_source() -> None:
+    paratranz = [
+        make_term(1, "거울 던전", "镜牢"),
+        make_term(2, "수감자", "罪人"),
+    ]
+    reviewed = [
+        make_term(100, "거울 던전", "镜之地牢"),
+        make_term(101, "지크프리트", "齐格弗里德"),
+    ]
+    merged = merge_glossary_terms([paratranz, reviewed])
+    by_source = {term.source: term for term in merged}
+
+    assert len(merged) == 3
+    assert by_source["거울 던전"].target == "镜之地牢"
+    assert by_source["거울 던전"].term_id == 100
+    assert by_source["수감자"].target == "罪人"
+    assert by_source["지크프리트"].target == "齐格弗里德"
 
 
 def make_term(term_id: int, source: str, target: str) -> GlossaryTerm:

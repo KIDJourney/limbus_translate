@@ -109,6 +109,11 @@ python3 -m limbus_translate.cli glossary audit \
   --report build/glossary-audit.json \
   --fail-on error
 
+python3 -m limbus_translate.cli glossary merge \
+  --input cache/glossary/paratranz-6860.json \
+  --input cache/glossary/local-reviewed.json \
+  --output cache/glossary/active.json
+
 python3 -m limbus_translate.cli state init \
   --units build/missing-units.json \
   --output cache/state/units.json
@@ -217,6 +222,8 @@ python3 -m limbus_translate.cli terms promote \
 ```
 
 `refined.json` 中的 `decision` 为 `term` / `not_term` / `needs_review`，并保留 `suggested_target`、`confidence`、`note`、`contexts`、`provider` 等字段。`terms refine --cache` 会读取并更新持久 refined cache；缓存命中时复用旧 decision / suggested target / note，同时刷新本轮 contexts、count 和 sample text。`terms review-pack` 会输出 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`，默认排除 `not_term`；`terms apply-review` 只会导入 `approved` 明确为真且 `target` 非空的审校行；`terms promote` 只会导出 `decision=term` 且有 `suggested_target` 的记录。
+
+`glossary merge` 可把 Paratranz 同步缓存、本地审校术语和本地 promoted 术语合成 active glossary。输入按顺序合并，后面的 cache 会覆盖前面同 Korean source 的译名，因此建议把 Paratranz 放在前面，把人工审校库放在后面。
 
 `tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 

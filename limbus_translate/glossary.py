@@ -176,6 +176,18 @@ def read_cache(path: Path) -> list[GlossaryTerm]:
     return [GlossaryTerm(**row) for row in rows]
 
 
+def merge_glossary_terms(term_groups: list[list[GlossaryTerm]]) -> list[GlossaryTerm]:
+    merged: dict[tuple[str, str, str], GlossaryTerm] = {}
+    for terms in term_groups:
+        for term in terms:
+            source_key = normalize_text(term.source)
+            if not source_key:
+                continue
+            key = (term.source_lang, term.target_lang, source_key)
+            merged[key] = term
+    return sorted(merged.values(), key=lambda term: (term.source_lang, term.target_lang, normalize_text(term.source)))
+
+
 def audit_terms(terms: list[GlossaryTerm]) -> GlossaryAuditReport:
     issues: list[GlossaryAuditIssue] = []
     by_source: dict[str, list[GlossaryTerm]] = {}

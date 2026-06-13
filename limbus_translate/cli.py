@@ -19,7 +19,15 @@ from .evaluation import (
     write_gold_cases,
     write_gold_review_pack,
 )
-from .glossary import audit_terms, fetch_paratranz_terms, import_terms, read_cache, write_audit_report, write_cache
+from .glossary import (
+    audit_terms,
+    fetch_paratranz_terms,
+    import_terms,
+    merge_glossary_terms,
+    read_cache,
+    write_audit_report,
+    write_cache,
+)
 from .lore import (
     build_lore_index,
     import_lore,
@@ -117,6 +125,22 @@ def cmd_glossary_import(args: argparse.Namespace) -> int:
     terms = import_terms(Path(args.input))
     write_cache(Path(args.output), terms)
     print(f"glossary import complete: {len(terms)} terms -> {args.output}")
+    return 0
+
+
+def cmd_glossary_merge(args: argparse.Namespace) -> int:
+    term_groups = [read_cache(Path(path)) for path in args.input]
+    merged = merge_glossary_terms(term_groups)
+    input_terms = sum(len(group) for group in term_groups)
+    write_cache(Path(args.output), merged)
+    print(f"glossary merge complete: {input_terms} input terms -> {len(merged)} merged terms -> {args.output}")
+    print(
+        json.dumps(
+            {"inputs": len(args.input), "input_terms": input_terms, "merged_terms": len(merged)},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
@@ -801,6 +825,15 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--input", required=True)
     imp.add_argument("--output", default="cache/glossary/imported.json")
     imp.set_defaults(func=cmd_glossary_import)
+    merge = glossary_sub.add_parser("merge")
+    merge.add_argument(
+        "--input",
+        action="append",
+        required=True,
+        help="Glossary cache path. Later inputs override earlier terms with the same source.",
+    )
+    merge.add_argument("--output", default="cache/glossary/merged.json")
+    merge.set_defaults(func=cmd_glossary_merge)
     audit = glossary_sub.add_parser("audit")
     audit.add_argument("--input", default="cache/glossary/paratranz-6860.json")
     audit.add_argument("--report", default="build/glossary-audit.json")

@@ -26,7 +26,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 功能 | 定义 | 当前进展 |
 |---|---|---|
 | 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON；可用上一版 `KR` 做源文 path 级 diff | 已完成 Localize commit 输入准备、全量扫描、scan policy、changed-files 文件级过滤和 source-baseline JSON path 级源文变化扫描；`workflow run` 可直接从 Localize checkout 的 base/head 准备输入；源文变化但目标已有旧中文会标记为 `source_changed` |
-| 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存，并对缓存质量做本地审计 | 已完成同步与 audit 初版；workflow summary 可暴露术语库问题分布 |
+| 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存，并对缓存质量做本地审计 | 已完成同步、audit 和多来源 glossary cache 合并；可把 Paratranz 基础库与本地人工审校术语合成 active glossary，workflow summary 可暴露术语库问题分布 |
 | 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；支持持久 refined cache，跨更新复用已提炼 source，只对新增候选调用 refiner；可导出 review pack，审校确认后可写入本地 glossary cache；`workflow run` 默认产出本次新增术语候选和审校包 |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底，OpenAI-compatible Chat / Qwen-MT 可进入模型赛马 | 已完成 `dry-run`、Responses API `openai`、通用 `openai-chat` 和专用 `qwen-mt` provider；Qwen-MT 真实质量尚待 curated gold 评估 |

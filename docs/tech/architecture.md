@@ -34,7 +34,7 @@ LocalizeLimbusCompany checkout
 |---|---|
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy、changed-files 文件级增量扫描和 source-baseline JSON path 级源文变化扫描 |
-| `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配和术语库质量审计 |
+| `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存合并、术语匹配和术语库质量审计 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，构建离线 hashed-vector 索引，并按 anchors、术语、TF-IDF 字符 n-gram 或索引相似度召回 lore 片段 |
 | `limbus_translate/localize.py` | 从 LocalizeLimbusCompany checkout 的两个 commit 生成 changed-files 清单和上一版 `KR` source baseline |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆，并用 curated gold set 评估 fuzzy TM 召回覆盖率和目标译文相似度 |
