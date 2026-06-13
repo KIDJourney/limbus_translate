@@ -58,9 +58,16 @@ python3 -m limbus_translate.cli terms refine \
   --candidates cache/terms/candidates.json \
   --output cache/terms/refined.json \
   --provider rules
+
+python3 -m limbus_translate.cli terms promote \
+  --refined cache/terms/refined.json \
+  --output cache/glossary/local-refined.json \
+  --merge cache/glossary/paratranz-6860.json
 ```
 
 `terms refine --provider openai` 可用于正式术语初筛和建议译名，但它依赖 OpenAI 可选依赖与 API key；输出仍应进入人工审校，不直接写入正式 termbase。
+
+`terms promote` 只导出 `decision=term` 且存在 `suggested_target` 的记录；`needs_review` 不会进入正式术语缓存。
 
 ## 文档验证
 

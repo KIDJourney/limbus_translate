@@ -6,8 +6,10 @@ from limbus_translate.scanner import TranslationUnit
 from limbus_translate.terms import (
     RulesTermRefiner,
     TermCandidate,
+    RefinedTerm,
     extract_term_candidates,
     get_term_refiner,
+    promote_refined_terms,
     read_refined_terms,
     write_refined_terms,
 )
@@ -125,3 +127,58 @@ def test_get_term_refiner_resolves_supported_providers() -> None:
         assert "unknown term refiner" in str(exc)
     else:
         raise AssertionError("unknown provider should raise ValueError")
+
+
+def test_promote_refined_terms_exports_only_confirmed_terms() -> None:
+    refined = [
+        RefinedTerm(
+            source="거울 던전",
+            decision="term",
+            suggested_target="镜牢",
+            note="approved by reviewer",
+            confidence=0.91,
+            contexts=["StoryData/Sample.json::dataList.0.content"],
+            provider="openai",
+            count=3,
+            sample_text="거울 던전으로 향했다.",
+            reason="hangul_phrase",
+            raw={"decision": "term"},
+        ),
+        RefinedTerm(
+            source="지크프리트",
+            decision="needs_review",
+            suggested_target="齐格弗里德",
+            note="needs human approval",
+            confidence=0.8,
+            contexts=[],
+            provider="openai",
+            count=1,
+            sample_text="지크프리트가 말했다.",
+            reason="marked_name",
+            raw={},
+        ),
+        RefinedTerm(
+            source="W2사",
+            decision="term",
+            suggested_target="",
+            note="missing target",
+            confidence=0.9,
+            contexts=[],
+            provider="rules",
+            count=2,
+            sample_text="W2사가 도착했다.",
+            reason="contains_number",
+            raw={},
+        ),
+    ]
+
+    promoted = promote_refined_terms(refined, min_confidence=0.5)
+
+    assert len(promoted) == 1
+    assert promoted[0].source == "거울 던전"
+    assert promoted[0].target == "镜牢"
+    assert promoted[0].provider == "local-refined"
+    assert promoted[0].source_lang == "ko"
+    assert promoted[0].target_lang == "zh-cn"
+    assert "approved by reviewer" in promoted[0].note
+    assert promoted[0].raw["source"] == "거울 던전"

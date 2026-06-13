@@ -27,7 +27,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 |---|---|---|
 | 缺译扫描 | 比较 `KR` 与 `LLC_zh-CN`，输出待译单元 JSON | 已完成初版 |
 | 术语同步 | 从 Paratranz 项目 `6860` 分页同步术语缓存 | 已完成初版 |
-| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选 |
+| 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；确认后可 promote 到本地 glossary cache |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
 | 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例和术语命中注入 provider context | 已完成轻量 ContextBundle 初版 |

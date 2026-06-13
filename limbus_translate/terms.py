@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -130,6 +131,46 @@ def write_refined_terms(path: Path, terms: list[RefinedTerm]) -> None:
 def read_refined_terms(path: Path) -> list[RefinedTerm]:
     rows = json.loads(path.read_text(encoding="utf-8"))
     return [RefinedTerm(**row) for row in rows]
+
+
+def promote_refined_terms(
+    refined_terms: list[RefinedTerm],
+    *,
+    provider: str = "local-refined",
+    source_lang: str = "ko",
+    target_lang: str = "zh-cn",
+    min_confidence: float = 0.0,
+) -> list[GlossaryTerm]:
+    fetched_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    promoted: list[GlossaryTerm] = []
+    for index, term in enumerate(refined_terms):
+        if term.decision != "term":
+            continue
+        if term.confidence < min_confidence:
+            continue
+        if not term.source.strip() or not term.suggested_target.strip():
+            continue
+        note_parts = [part for part in [term.note, f"source={term.provider}", f"reason={term.reason}"] if part]
+        promoted.append(
+            GlossaryTerm(
+                provider=provider,
+                project_id=None,
+                term_id=index,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                source=term.source,
+                target=term.suggested_target,
+                note="; ".join(note_parts),
+                part_of_speech="",
+                variants=[],
+                case_sensitive=False,
+                created_at=None,
+                updated_at=fetched_at,
+                raw=asdict(term),
+                fetched_at=fetched_at,
+            )
+        )
+    return promoted
 
 
 class RulesTermRefiner:
