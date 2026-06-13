@@ -66,8 +66,9 @@ python3 -m limbus_translate.cli workflow run \
   --output build/LLC_zh-CN \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/localize-update/changed-files.txt \
-  --source-baseline build/localize-update/source-baseline/KR \
+  --localize-repo /path/to/LocalizeLimbusCompany \
+  --localize-base HEAD~1 \
+  --localize-head HEAD \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --terms-cache cache/terms/refined-cache.json \
@@ -191,7 +192,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `glossary audit` 会读取本地 glossary cache，检查空源文、空译名、同源多译名冲突、源文疑似非韩文、译文韩文残留、译文等于源文和重复 source/target pair。`--fail-on error` 可把严重术语问题作为自动化门禁；`--fail-on warning` 更适合正式发布前的人工清理阶段。
 
-`workflow run` 是一次上游更新的默认串联入口：先按 scan policy、changed-files 和可选 source-baseline 生成 `missing-units.json`，再构建 `tm.json`；如果传入 `--glossary`，会写出 `glossary-audit.json` 并在 summary 暴露术语库问题分布；随后对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，再 overlay 现有目标树、执行翻译、写出 `translation-candidates.json`、`translation-requests.jsonl` 与 `translation-trace.jsonl`、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`summary.translation_requests.usage` 会按总量、provider 和 response model 汇总 request log 中的 usage。`--candidate-cache` 可指向持久候选缓存；不传时使用工作目录内的 `translation-candidates.json`。`--terms-cache` 可指向持久 refined term cache，summary 会记录 existing、reused、added 和 total；`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
+`workflow run` 是一次上游更新的默认串联入口：如果传入 `--localize-repo`，会先按 `--localize-base..--localize-head` 在 `--work-dir/localize-update/` 下生成 `changed-files.txt` 和 `source-baseline/KR`；显式传入的 `--changed-files` 或 `--source-baseline` 会覆盖自动生成路径。随后 workflow 按 scan policy、changed-files 和可选 source-baseline 生成 `missing-units.json`，再构建 `tm.json`；如果传入 `--glossary`，会写出 `glossary-audit.json` 并在 summary 暴露术语库问题分布；随后对本次新增文本输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包，可选导入 `--lore-input` 并生成离线 `lore-index.json`，再 overlay 现有目标树、执行翻译、写出 `translation-candidates.json`、`translation-requests.jsonl` 与 `translation-trace.jsonl`、运行 QA、导出 `translation-review/`，最后写出 `summary.json`。`summary.localize_update` 会记录自动准备的 changed-files / source-baseline 路径和变更数量；`summary.translation_requests.usage` 会按总量、provider 和 response model 汇总 request log 中的 usage。`--candidate-cache` 可指向持久候选缓存；不传时使用工作目录内的 `translation-candidates.json`。`--terms-cache` 可指向持久 refined term cache，summary 会记录 existing、reused、added 和 total；`--terms-provider` 默认 `rules`，可切到 `openai`；`--skip-terms` 可跳过术语步骤；`--lore` / `--lore-index` 可复用已有缓存；`--lore-input` 用于把本地笔记目录作为本次工作目录内的可追踪产物重新导入。`--fail-on-error` 可把 QA error 作为命令失败，warning 不会失败。
 
 `translate --candidate-cache` 会读取并更新 provider 候选缓存。缓存 key 绑定 provider、source hash、context hash 和 glossary hash，所以术语或 lore 上下文变化后不会误复用旧译文。`translate --request-log` 输出真正发给 provider 的 source、glossary、context、`target_text`、`response_model`、`response_id` 和 `usage`；state、TM 和 candidate cache 命中不会写入 request log。`translate --trace` 输出 JSONL，每行记录 `translation_source`，用于区分 state、TM、candidate cache 和 provider。
 

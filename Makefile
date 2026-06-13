@@ -16,6 +16,17 @@ smoke:
 		--head HEAD \
 		--work-dir build/prepared-update
 	python3 -c "import json; changed=open('build/prepared-update/changed-files.txt', encoding='utf-8').read().splitlines(); baseline=json.load(open('build/prepared-update/source-baseline/KR/Sample.json', encoding='utf-8')); assert changed == ['KR/Sample.json', 'README.md']; assert baseline['dataList'][0]['desc'] == '예전 문장입니다.'; print('localize prepare-update schema ok')"
+	python3 -m limbus_translate.cli workflow run \
+		--source build/localize-repo/KR \
+		--target build/localize-repo/LLC_zh-CN \
+		--output build/localize-workflow-output \
+		--work-dir build/localize-workflow \
+		--localize-repo build/localize-repo \
+		--localize-base HEAD~1 \
+		--localize-head HEAD \
+		--skip-terms \
+		--provider dry-run
+	python3 -c "import json; summary=json.load(open('build/localize-workflow/summary.json', encoding='utf-8')); assert summary['localize_update']['changed_count'] == 2; assert summary['source_baseline']['path'].endswith('source-baseline/KR'); assert summary['by_reason'] == {'source_changed': 1}; print('workflow localize prepare schema ok')"
 	printf 'KR/Sample.json\nREADME.md\n' > build/changed-files.txt
 	python3 -m limbus_translate.cli scan \
 		--source tests/fixtures/localize/KR \

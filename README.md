@@ -61,8 +61,9 @@ python3 -m limbus_translate.cli workflow run \
   --output build/LLC_zh-CN \
   --work-dir build/workflow \
   --scan-policy config/scan-policy.sample.json \
-  --changed-files build/localize-update/changed-files.txt \
-  --source-baseline build/localize-update/source-baseline/KR \
+  --localize-repo /path/to/LocalizeLimbusCompany \
+  --localize-base HEAD~1 \
+  --localize-head HEAD \
   --glossary cache/glossary/paratranz-6860.json \
   --lore-input docs/lore \
   --terms-cache cache/terms/refined-cache.json \
@@ -70,7 +71,7 @@ python3 -m limbus_translate.cli workflow run \
   --provider dry-run
 ```
 
-`workflow run` 会串联 scan、TM 构建、可选 glossary audit、可选 lore 导入/索引、同结构翻译输出、QA 和翻译审校包，工作目录中会写出 `missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-requests.jsonl`、`translation-trace.jsonl`、可选 `lore.json` / `lore-index.json`、`qa-report.json`、`translation-review/` 和 `summary.json`。`summary.json` 记录待译单元数、实际写入数、缺译原因分布、术语库审计、术语 refined cache 复用统计、候选缓存统计、provider request 行数、usage 汇总、trace 行数、QA 汇总和所有产物路径，适合作为一次上游更新的交接入口。
+`workflow run` 会串联 scan、TM 构建、可选 glossary audit、可选 lore 导入/索引、同结构翻译输出、QA 和翻译审校包。传入 `--localize-repo` 时，它会先在 `--work-dir/localize-update/` 下生成 changed-files 和 source baseline；如果同时显式传入 `--changed-files` 或 `--source-baseline`，则以显式路径为准。工作目录中会写出 `missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-requests.jsonl`、`translation-trace.jsonl`、可选 `lore.json` / `lore-index.json`、`qa-report.json`、`translation-review/` 和 `summary.json`。`summary.json` 记录待译单元数、实际写入数、缺译原因分布、Localize update 输入、术语库审计、术语 refined cache 复用统计、候选缓存统计、provider request 行数、usage 汇总、trace 行数、QA 汇总和所有产物路径，适合作为一次上游更新的交接入口。
 
 默认情况下，`workflow run` 还会对本次新增文本执行术语候选提取和 rules 二次提炼，输出 `term-candidates.json`、`refined-terms.json` 和 `term-review/` 审校包；传入 `--terms-cache cache/terms/refined-cache.json` 时，会先复用同 source 的历史 refined 结果，只对新增候选调用 refiner，并把合并结果写回缓存。需要 LLM 给建议译名时可传 `--terms-provider openai`，需要只跑翻译链路时可传 `--skip-terms`。
 

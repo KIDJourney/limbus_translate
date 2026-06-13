@@ -191,18 +191,34 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     work_dir = Path(args.work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
 
+    localize_update = None
+    changed_files_arg = args.changed_files
+    source_baseline_arg = args.source_baseline
+    if args.localize_repo:
+        localize_update = prepare_localize_update(
+            repo=Path(args.localize_repo),
+            base=args.localize_base,
+            head=args.localize_head,
+            work_dir=work_dir / "localize-update",
+            language_dir=args.localize_language_dir,
+        )
+        if not changed_files_arg:
+            changed_files_arg = localize_update.changed_files
+        if not source_baseline_arg:
+            source_baseline_arg = localize_update.source_baseline
+
     scan_policy = read_scan_policy(Path(args.scan_policy)) if args.scan_policy else None
     include_files = (
-        read_changed_files(Path(args.changed_files), source_root=source, target_root=target) if args.changed_files else None
+        read_changed_files(Path(changed_files_arg), source_root=source, target_root=target) if changed_files_arg else None
     )
     include_source_paths = (
         collect_changed_source_paths(
-            Path(args.source_baseline),
+            Path(source_baseline_arg),
             source,
             scan_policy=scan_policy,
             include_files=include_files,
         )
-        if args.source_baseline
+        if source_baseline_arg
         else None
     )
     units = scan_missing(
@@ -352,8 +368,9 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "translated": translated,
         "qa_issues": len(issues),
         "by_reason": dict(sorted(by_reason.items())),
+        "localize_update": prepared_update_payload(localize_update) if localize_update is not None else {},
         "source_baseline": {
-            "path": args.source_baseline,
+            "path": source_baseline_arg,
             "changed_files": len(include_source_paths or {}),
             "changed_paths": sum(len(paths) for paths in (include_source_paths or {}).values()),
         },
@@ -814,6 +831,10 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--target", required=True)
     workflow_run.add_argument("--output", default="build/LLC_zh-CN")
     workflow_run.add_argument("--work-dir", default="build/workflow")
+    workflow_run.add_argument("--localize-repo", default="", help="Optional LocalizeLimbusCompany checkout to prepare update inputs from.")
+    workflow_run.add_argument("--localize-base", default="HEAD~1", help="Base commit for automatic Localize update preparation.")
+    workflow_run.add_argument("--localize-head", default="HEAD", help="Head commit for automatic Localize update preparation.")
+    workflow_run.add_argument("--localize-language-dir", default="KR", help="Source language directory archived from localize-base.")
     workflow_run.add_argument("--scan-policy", default="")
     workflow_run.add_argument("--changed-files", default="")
     workflow_run.add_argument("--source-baseline", default="")
