@@ -2,6 +2,27 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Gold set 分层采样
+
+### 已完成
+
+- 新增 `eval sample-gold` CLI，可从已有 gold set 按 `tag`、`risk` 或 `file` 分层采样。
+- 支持 `--per-group`、`--limit` 和固定 `--seed`，便于构建可重复的模型赛马样本。
+- `make smoke` 已接入 full gold set -> sampled gold set -> eval compare 的链路。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖按 tag/risk 分层采样和固定 seed 可重复性。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，生成 `build/gold-sample.json` 并用它执行 `eval compare`。
+- 真实 Localize checkout 小样本：`eval build-gold --limit 100` 生成 100 条；`eval sample-gold --per-group 5 --group-by tag --seed 7` 生成 15 条 sampled gold。
+
+### 风险
+
+- 当前是工程化分层采样，不等于人工精选 gold set；正式模型赛马仍需要人工抽查样本质量和覆盖范围。
+
 ## 2026-06-13 — Gold set 多 provider 对比评估
 
 ### 已完成

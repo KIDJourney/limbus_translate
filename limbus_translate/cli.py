@@ -10,6 +10,7 @@ from .evaluation import (
     read_gold_cases,
     run_eval_comparison,
     run_gold_evaluation,
+    sample_gold_cases,
     summarize_eval_comparison,
     summarize_eval,
     write_eval_comparison_report,
@@ -232,6 +233,31 @@ def cmd_eval_build_gold(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_eval_sample_gold(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    sampled = sample_gold_cases(
+        cases,
+        limit=args.limit,
+        per_group=args.per_group,
+        group_by=args.group_by,
+        seed=args.seed,
+    )
+    write_gold_cases(Path(args.output), sampled)
+    by_tag: dict[str, int] = {}
+    for case in sampled:
+        for tag in case.tags:
+            by_tag[tag] = by_tag.get(tag, 0) + 1
+    print(f"gold sample complete: {len(sampled)} cases -> {args.output}")
+    print(
+        json.dumps(
+            {"by_tag": dict(sorted(by_tag.items())), "group_by": args.group_by, "seed": args.seed, "total": len(sampled)},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def parse_provider_specs(values: list[str]) -> list[tuple[str, str]]:
     providers: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -342,6 +368,14 @@ def build_parser() -> argparse.ArgumentParser:
     eval_build.add_argument("--min-source-length", type=int, default=2)
     eval_build.add_argument("--max-source-length", type=int, default=500)
     eval_build.set_defaults(func=cmd_eval_build_gold)
+    eval_sample = eval_sub.add_parser("sample-gold")
+    eval_sample.add_argument("--gold", required=True)
+    eval_sample.add_argument("--output", default="cache/eval/gold-sample.json")
+    eval_sample.add_argument("--limit", type=int, default=None)
+    eval_sample.add_argument("--per-group", type=int, default=None)
+    eval_sample.add_argument("--group-by", choices=["tag", "risk", "file"], default="tag")
+    eval_sample.add_argument("--seed", type=int, default=1)
+    eval_sample.set_defaults(func=cmd_eval_sample_gold)
 
     terms = sub.add_parser("terms", help="Extract and cache candidate glossary terms.")
     terms_sub = terms.add_subparsers(required=True)

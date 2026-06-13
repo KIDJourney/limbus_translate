@@ -81,13 +81,20 @@ python3 -m limbus_translate.cli eval build-gold \
   --output cache/eval/gold-set.json \
   --limit 1000
 
-python3 -m limbus_translate.cli eval run \
+python3 -m limbus_translate.cli eval sample-gold \
   --gold cache/eval/gold-set.json \
+  --output cache/eval/gold-sample.json \
+  --per-group 20 \
+  --group-by tag \
+  --seed 7
+
+python3 -m limbus_translate.cli eval run \
+  --gold cache/eval/gold-sample.json \
   --provider dry-run \
   --report build/eval-report.json
 
 python3 -m limbus_translate.cli eval compare \
-  --gold cache/eval/gold-set.json \
+  --gold cache/eval/gold-sample.json \
   --provider baseline=dry-run \
   --provider gpt41=openai:gpt-4.1 \
   --report build/eval-compare-report.json
@@ -119,7 +126,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `refined.json` 中的 `decision` 为 `term` / `not_term` / `needs_review`，并保留 `suggested_target`、`confidence`、`note`、`contexts`、`provider` 等字段。`terms review-pack` 会输出 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`，默认排除 `not_term`；`terms apply-review` 只会导入 `approved` 明确为真且 `target` 非空的审校行；`terms promote` 只会导出 `decision=term` 且有 `suggested_target` 的记录。
 
-`--provider` 支持 `dry-run`、`openai` 和 `openai:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。
+`eval sample-gold` 可按 `tag` / `risk` / `file` 分层抽样，避免评估集过度偏向单一文本类型；`--provider` 支持 `dry-run`、`openai` 和 `openai:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。
 
 使用 OpenAI provider 前需要安装可选依赖并设置 API key：
 

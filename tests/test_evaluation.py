@@ -6,6 +6,7 @@ from limbus_translate.evaluation import (
     read_gold_cases,
     run_eval_comparison,
     run_gold_evaluation,
+    sample_gold_cases,
     summarize_eval_comparison,
     summarize_eval,
     write_eval_comparison_report,
@@ -48,6 +49,18 @@ class GoldProvider:
 class BadProvider:
     def translate(self, request: TranslationRequest) -> str:
         return "错误译文"
+
+
+def make_gold_case(case_id: str, tags: list[str], risk: str = "medium"):
+    from limbus_translate.evaluation import GoldCase
+
+    return GoldCase(
+        case_id=case_id,
+        source_text=f"{case_id} 원문",
+        expected_text=f"{case_id} 译文",
+        context={"risk": risk, "relative_file": f"{case_id}.json"},
+        tags=tags,
+    )
 
 
 def test_gold_evaluation_passes_matching_provider() -> None:
@@ -103,6 +116,30 @@ def test_eval_comparison_ranks_providers() -> None:
     assert summary["rankings"][1]["provider"] == "bad"
     assert '"providers"' in text
     assert '"rankings"' in text
+
+
+def test_sample_gold_cases_is_stratified_and_repeatable() -> None:
+    cases = [
+        make_gold_case("story-1", ["story"], risk="medium"),
+        make_gold_case("story-2", ["story"], risk="medium"),
+        make_gold_case("story-3", ["story"], risk="medium"),
+        make_gold_case("name-1", ["name"], risk="low"),
+        make_gold_case("name-2", ["name"], risk="low"),
+        make_gold_case("format-1", ["format"], risk="high"),
+    ]
+
+    first = sample_gold_cases(cases, per_group=1, group_by="tag", seed=7)
+    second = sample_gold_cases(cases, per_group=1, group_by="tag", seed=7)
+    by_id = {case.case_id for case in first}
+    by_risk = sample_gold_cases(cases, per_group=1, group_by="risk", seed=7)
+
+    assert [case.case_id for case in first] == [case.case_id for case in second]
+    assert len(first) == 3
+    assert any(case_id.startswith("story-") for case_id in by_id)
+    assert any(case_id.startswith("name-") for case_id in by_id)
+    assert "format-1" in by_id
+    assert len(by_risk) == 3
+    assert {case.context["risk"] for case in by_risk} == {"low", "medium", "high"}
 
 
 def test_build_gold_cases_from_reference_tree() -> None:

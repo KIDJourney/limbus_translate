@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import asdict, dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -66,6 +67,51 @@ def write_gold_cases(path: Path, cases: list[GoldCase]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"cases": [asdict(case) for case in cases]}
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def sample_gold_cases(
+    cases: list[GoldCase],
+    *,
+    limit: int | None = None,
+    per_group: int | None = None,
+    group_by: str = "tag",
+    seed: int = 1,
+) -> list[GoldCase]:
+    if limit is None and per_group is None:
+        return list(cases)
+    if limit is not None and limit <= 0:
+        return []
+    if per_group is not None and per_group <= 0:
+        return []
+
+    buckets: dict[str, list[GoldCase]] = {}
+    for case in cases:
+        for label in _sample_group_labels(case, group_by):
+            buckets.setdefault(label, []).append(case)
+
+    rng = random.Random(seed)
+    selected: list[GoldCase] = []
+    seen: set[str] = set()
+    for label in sorted(buckets):
+        bucket = sorted(buckets[label], key=lambda case: case.case_id)
+        rng.shuffle(bucket)
+        taken = 0
+        for case in bucket:
+            if case.case_id in seen:
+                continue
+            selected.append(case)
+            seen.add(case.case_id)
+            taken += 1
+            if per_group is not None and taken >= per_group:
+                break
+            if limit is not None and len(selected) >= limit:
+                return selected
+
+    if limit is not None and len(selected) < limit:
+        remainder = [case for case in sorted(cases, key=lambda item: item.case_id) if case.case_id not in seen]
+        rng.shuffle(remainder)
+        selected.extend(remainder[: limit - len(selected)])
+    return selected[:limit] if limit is not None else selected
 
 
 def build_gold_cases(
@@ -291,6 +337,23 @@ def _gold_tags(relative_file: str, json_path: str, source_text: str, target_text
     if profile_text(source_text).tags or profile_text(target_text).tags:
         tags.append("format")
     return tags
+
+
+def _sample_group_labels(case: GoldCase, group_by: str) -> list[str]:
+    if group_by == "tag":
+        return case.tags or ["untagged"]
+    if group_by == "risk":
+        risk = case.context.get("risk") if isinstance(case.context, dict) else None
+        if risk:
+            return [str(risk)]
+        for tag in case.tags:
+            if tag in {"low", "medium", "high", "internal"}:
+                return [tag]
+        return ["unknown"]
+    if group_by == "file":
+        relative = case.context.get("relative_file") if isinstance(case.context, dict) else None
+        return [str(relative or "unknown")]
+    raise ValueError(f"unknown gold sample group: {group_by}")
 
 
 def _case_from_row(row: dict[str, Any], *, fallback_id: str) -> GoldCase:
