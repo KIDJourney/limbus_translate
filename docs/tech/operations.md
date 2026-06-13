@@ -29,12 +29,17 @@ python3 -m limbus_translate.cli tm build \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output cache/tm/exact.json
 
+python3 -m limbus_translate.cli state init \
+  --units build/missing-units.json \
+  --output cache/state/units.json
+
 python3 -m limbus_translate.cli translate \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
   --memory cache/tm/exact.json \
+  --state cache/state/units.json \
   --output build/LLC_zh-CN \
   --provider dry-run
 

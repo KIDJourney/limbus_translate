@@ -13,6 +13,7 @@ LocalizeLimbusCompany checkout
     -> scanner.py: semantic JSON path diff
     -> glossary.py: Paratranz / offline term cache
     -> memory.py: exact translation memory
+    -> state.py: reviewed / locked unit state
     -> providers.py: dry-run / OpenAI provider
     -> translator.py: overlay existing target tree and set translated JSON paths
     -> qa.py: placeholders, tags, numbers, line breaks, glossary checks
@@ -28,6 +29,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
+| `limbus_translate/state.py` | 维护 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元 |
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行和术语命中 |
@@ -42,9 +44,10 @@ LocalizeLimbusCompany checkout
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
 3. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
 4. `translate` 读取待译单元、术语缓存和 TM，按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。
-5. `qa` 检查占位符、标签、术语、数字、换行和韩文残留。
-6. `terms extract` 从新增文本提取候选词/短语，进入 LLM 或人工二次筛选。
-7. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+5. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
+6. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险。
+7. `terms extract` 从新增文本提取候选词/短语，进入 LLM 或人工二次筛选。
+8. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 ## 设计原则
 

@@ -9,6 +9,8 @@ from .glossary import GlossaryTerm, match_terms
 from .json_paths import contains_hangul, get_path
 from .scanner import TranslationUnit, load_json
 
+TRADITIONAL_CHARS = set("體臺與為國門風龍後復發幾無萬廣東關開時會來對個聲長見點說這裡")
+
 
 @dataclass(frozen=True)
 class QaIssue:
@@ -41,6 +43,18 @@ def check_pair(unit: TranslationUnit, translated_text: str, glossary: list[Gloss
         issue("warning", "number_mismatch", "数字集合不一致")
     if source_profile.line_breaks != target_profile.line_breaks:
         issue("warning", "line_break_mismatch", "实际换行数量不一致")
+    traditional_hits = sorted({ch for ch in translated_text if ch in TRADITIONAL_CHARS})
+    if traditional_hits:
+        issue("warning", "traditional_chinese", f"疑似包含繁体字: {''.join(traditional_hits[:10])}")
+    if len(unit.source_text) >= 10:
+        ratio = len(translated_text) / max(len(unit.source_text), 1)
+        if ratio > 2.2:
+            issue("warning", "length_ratio_high", f"译文长度比例过高: {ratio:.2f}")
+        elif ratio < 0.25:
+            issue("warning", "length_ratio_low", f"译文长度比例过低: {ratio:.2f}")
+    longest_line = max((len(line) for line in translated_text.splitlines()), default=len(translated_text))
+    if longest_line > 80:
+        issue("warning", "line_too_long", f"最长行 {longest_line} 字，可能超出 UI 宽度")
 
     for term in match_terms(unit.source_text, glossary):
         if term.target and term.target not in translated_text:

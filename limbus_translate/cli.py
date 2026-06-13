@@ -10,6 +10,7 @@ from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, write_issues
 from .scanner import TranslationUnit, scan_missing, write_units
+from .state import UnitState, read_state, write_state
 from .terms import extract_term_candidates, write_candidates
 from .translator import overlay_existing_target, translate_units
 
@@ -47,6 +48,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
     parsed_units = [TranslationUnit(**row) for row in json.loads(units_path.read_text(encoding="utf-8"))]
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     memory = read_memory(Path(args.memory)) if args.memory else {}
+    states = read_state(Path(args.state)) if args.state else {}
     overlay_existing_target(source, target, output)
     count = translate_units(
         source_root=source,
@@ -56,6 +58,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
         glossary=glossary,
         provider=get_provider(args.provider),
         memory=memory,
+        states=states,
         limit=args.limit,
     )
     print(f"translate complete: {count} units -> {output}")
@@ -93,6 +96,25 @@ def cmd_terms_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_state_init(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    states = [
+        UnitState(
+            unit_id=unit.unit_id,
+            source_hash=unit.source_hash,
+            stable_key=unit.stable_key,
+            status=args.status,
+            target_text=unit.target_text if args.keep_target else None,
+            note=args.note,
+        )
+        for unit in units
+    ]
+    write_state(Path(args.output), states)
+    print(f"state init complete: {len(states)} states -> {args.output}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="limbus-translate")
     sub = parser.add_subparsers(required=True)
@@ -122,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--units", default="build/missing-units.json")
     translate.add_argument("--glossary", default="")
     translate.add_argument("--memory", default="")
+    translate.add_argument("--state", default="")
     translate.add_argument("--output", default="build/LLC_zh-CN")
     translate.add_argument("--provider", choices=["dry-run", "openai"], default="dry-run")
     translate.add_argument("--limit", type=int, default=None)
@@ -151,6 +174,16 @@ def build_parser() -> argparse.ArgumentParser:
     terms_extract.add_argument("--output", default="cache/terms/candidates.json")
     terms_extract.add_argument("--min-count", type=int, default=1)
     terms_extract.set_defaults(func=cmd_terms_extract)
+
+    state = sub.add_parser("state", help="Create or manage unit review state.")
+    state_sub = state.add_subparsers(required=True)
+    state_init = state_sub.add_parser("init")
+    state_init.add_argument("--units", default="build/missing-units.json")
+    state_init.add_argument("--output", default="cache/state/units.json")
+    state_init.add_argument("--status", choices=["new", "reviewed", "locked"], default="new")
+    state_init.add_argument("--keep-target", action="store_true")
+    state_init.add_argument("--note", default="")
+    state_init.set_defaults(func=cmd_state_init)
     return parser
 
 
