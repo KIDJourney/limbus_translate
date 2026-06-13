@@ -446,6 +446,64 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
     return 1 if has_error and args.fail_on_error else 0
 
 
+def cmd_workflow_finalize(args: argparse.Namespace) -> int:
+    source = Path(args.source)
+    target = Path(args.target)
+    output = Path(args.output)
+    work_dir = Path(args.work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    finalize_units = units[: args.limit] if args.limit is not None else units
+    states = read_state(Path(args.state))
+    state_summary = summarize_state_coverage(finalize_units, states)
+
+    overlay_existing_target(source, target, output)
+    applied = apply_state_translations(
+        source_root=source,
+        target_root=target,
+        output_root=output,
+        units=finalize_units,
+        states=states,
+        limit=args.limit,
+    )
+
+    glossary = read_cache(Path(args.glossary)) if args.glossary else []
+    length_policy = read_length_policy(Path(args.length_policy)) if args.length_policy else None
+    issues = qa_output(units=finalize_units, output_root=output, glossary=glossary, length_policy=length_policy)
+    qa_summary = summarize_issues(issues)
+
+    state_status_path = work_dir / "state-status.json"
+    qa_path = work_dir / "qa-report.json"
+    summary_path = work_dir / "summary.json"
+    state_status_path.write_text(json.dumps(state_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_issues(qa_path, issues)
+
+    summary = {
+        "units": len(finalize_units),
+        "applied": applied,
+        "qa_issues": len(issues),
+        "state": state_summary,
+        "qa": qa_summary,
+        "artifacts": {
+            "output": str(output),
+            "state_status": str(state_status_path),
+            "qa_report": str(qa_path),
+            "summary": str(summary_path),
+        },
+    }
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"workflow finalize complete: {applied}/{len(finalize_units)} reviewed units -> {output}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    has_error = any(issue.severity == "error" for issue in issues)
+    if args.fail_if_pending and state_summary["pending_units"]:
+        return 1
+    if args.fail_on_error and has_error:
+        return 1
+    return 0
+
+
 def cmd_tm_build(args: argparse.Namespace) -> int:
     entries = build_memory(Path(args.source), Path(args.target))
     write_memory(Path(args.output), entries)
@@ -922,6 +980,19 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_run.add_argument("--limit", type=int, default=None)
     workflow_run.add_argument("--fail-on-error", action="store_true")
     workflow_run.set_defaults(func=cmd_workflow_run)
+    workflow_finalize = workflow_sub.add_parser("finalize")
+    workflow_finalize.add_argument("--source", required=True)
+    workflow_finalize.add_argument("--target", required=True)
+    workflow_finalize.add_argument("--units", default="build/missing-units.json")
+    workflow_finalize.add_argument("--state", required=True)
+    workflow_finalize.add_argument("--output", default="build/LLC_zh-CN-reviewed")
+    workflow_finalize.add_argument("--work-dir", default="build/finalize")
+    workflow_finalize.add_argument("--glossary", default="")
+    workflow_finalize.add_argument("--length-policy", default="")
+    workflow_finalize.add_argument("--limit", type=int, default=None)
+    workflow_finalize.add_argument("--fail-if-pending", action="store_true")
+    workflow_finalize.add_argument("--fail-on-error", action="store_true")
+    workflow_finalize.set_defaults(func=cmd_workflow_finalize)
 
     tm = sub.add_parser("tm", help="Build or inspect translation memory.")
     tm_sub = tm.add_subparsers(required=True)

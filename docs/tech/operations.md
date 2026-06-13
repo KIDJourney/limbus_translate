@@ -149,6 +149,18 @@ python3 -m limbus_translate.cli state status \
   --report build/state-status.json \
   --fail-if-pending
 
+python3 -m limbus_translate.cli workflow finalize \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --units build/missing-units.json \
+  --state cache/state/reviewed.json \
+  --output build/LLC_zh-CN-reviewed \
+  --work-dir build/finalize \
+  --glossary cache/glossary/active.json \
+  --length-policy config/length-policy.sample.json \
+  --fail-if-pending \
+  --fail-on-error
+
 python3 -m limbus_translate.cli tm evaluate \
   --memory cache/tm/exact.json \
   --gold cache/eval/gold-curated.json \
@@ -221,6 +233,8 @@ python3 -m limbus_translate.cli terms promote \
 `state apply` 会把已有 state 中带 `target_text` 的 reviewed / locked 单元写入同结构输出目录。它不会调用翻译 provider，也不会处理未审校单元；用于在 `review apply` 之后生成只包含人工确认译文的发布候选树。
 
 `state status` 会按本次 `missing-units.json` 统计 reviewed / locked 且有译文的 ready 单元、pending 单元、缺失 state 和缺失 target_text。`--fail-if-pending` 会在仍有 pending 时返回失败码，可作为发布前自动门禁。
+
+`workflow finalize` 会在不调用翻译 provider 的前提下，把 reviewed / locked state 应用到同结构输出树，再对最终输出运行 QA，并把 `state-status.json`、`qa-report.json` 和 `summary.json` 写入工作目录。它适合人工审校后的发布候选收口；`--fail-if-pending` 用于拦截未审校单元，`--fail-on-error` 用于把 QA error 变成失败码。
 
 `terms review-pack` 会从 refined cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。`review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据；`paratranz-import.csv` 只包含 `decision=term` 且已有 `suggested_target` 的候选，作为平台导入前的审校材料。
 

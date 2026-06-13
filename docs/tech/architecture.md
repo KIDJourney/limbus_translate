@@ -25,6 +25,7 @@ LocalizeLimbusCompany checkout
     -> terms.py: candidate extraction, refiner providers, persistent refined term cache
     -> review.py: translation review pack and reviewed state apply
     -> cli.py workflow run: optional Localize update preparation -> scan -> TM -> glossary audit -> term cache/review pack -> lore index -> translate/cache/request log/trace -> QA -> translation review summary
+    -> cli.py workflow finalize: reviewed state apply -> final QA -> release candidate summary
     -> build/LLC_zh-CN/**/*.json
 ```
 
@@ -47,7 +48,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行、术语命中和 UI 长度风险；支持 JSON length policy；输出 MQM 风格 category 汇总 |
 | `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语；通过 `rules` / `openai` provider 输出本轮 refined 结果，并可复用/更新持久 refined term cache；将已确认 refined term promote 为本地 glossary cache |
 | `limbus_translate/review.py` | 从候选输出和 QA 报告导出翻译审校包，并把审校通过的译文回写为 reviewed / locked state |
-| `limbus_translate/cli.py` | 命令行入口；`workflow run` 串联扫描、TM、术语候选/审校包、lore index、翻译输出、QA、翻译审校包和 summary |
+| `limbus_translate/cli.py` | 命令行入口；`workflow run` 串联扫描、TM、术语候选/审校包、lore index、翻译输出、QA、翻译审校包和 summary；`workflow finalize` 串联 reviewed state 应用、最终 QA 和发布候选 summary |
 | `tests/fixtures/` | 最小 Localize JSON 测试夹具 |
 | `docs/research/` | 模型、流程、外部来源调研 |
 
@@ -65,7 +66,7 @@ LocalizeLimbusCompany checkout
 10. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review`；传入 `--cache` 时会按规范化 source 复用历史 refined 结果，只把未命中候选交给 refiner，并把合并结果写回持久 cache；`terms promote` 只把有确认译名的 `term` 写入本地 glossary cache。
 11. `review pack` 把候选译文、源文、原目标文本、QA severity/code/message 导出为人工审校 CSV/JSONL；`review apply` 把明确 approved 的行回写为 `reviewed` 或 `locked` state。
 12. `workflow run` 把可选 Localize commit 输入准备、scan、TM 构建、可选 source-baseline 源文 path diff、可选 glossary audit、术语候选提取/refine/cache/review pack、可选 lore 导入/索引、translate、candidate cache、provider request log、usage summary、translation trace、QA 和 translation review pack 串成一次可复现更新，输出工作目录内的 `localize-update/`、`missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-requests.jsonl`、`translation-trace.jsonl`、`term-candidates.json`、`refined-terms.json`、`term-review/`、可选 refined term cache、可选 lore cache/index、`qa-report.json`、`translation-review/` 和 `summary.json`。
-13. 审校通过后，译文通过 `state apply` 进入目标语言包，并可继续进入 TM 和回归评估集。
+13. 审校通过后，`workflow finalize` 用 reviewed / locked state 生成发布候选目录，写出 `state-status.json`、`qa-report.json` 和 `summary.json`，并可用 `--fail-if-pending` / `--fail-on-error` 做发布前门禁；确认后的译文可继续进入 TM 和回归评估集。
 
 `TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`reason`、`risk`、`previous_target_text`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `previous_target_text` 只在 `source_changed` 且旧目标译文是中文时填充，用于让 provider 修订旧译文；`neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存。未提供 index 时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；提供 `--lore-index` 时使用离线 hashed-vector index 召回。当前还不是外部 embedding 服务或经过 gold set 调参的完整 RAG。
 

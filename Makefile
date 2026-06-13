@@ -114,6 +114,15 @@ smoke:
 		--state build/reviewed-state.json \
 		--report build/state-status.json
 	python3 -c "import json; status=json.load(open('build/state-status.json', encoding='utf-8')); assert status['total_units'] == 2; assert status['ready_units'] == 1; assert status['pending_units'] == 1; assert status['by_status']['missing_state'] == 1; print('state status schema ok')"
+	python3 -m limbus_translate.cli workflow finalize \
+		--source tests/fixtures/localize/KR \
+		--target tests/fixtures/localize/LLC_zh-CN \
+		--units build/missing-units.json \
+		--state build/reviewed-state.json \
+		--output build/finalized-output \
+		--work-dir build/finalize \
+		--length-policy config/length-policy.sample.json
+	python3 -c "import json; summary=json.load(open('build/finalize/summary.json', encoding='utf-8')); status=json.load(open('build/finalize/state-status.json', encoding='utf-8')); data=json.load(open('build/finalized-output/Sample.json', encoding='utf-8')); assert summary['applied'] == 1; assert summary['state']['pending_units'] == 1; assert status['ready_units'] == 1; assert data['dataList'][0]['desc'] == '审校后的译文。'; print('workflow finalize schema ok')"
 	python3 -m limbus_translate.cli eval build-gold \
 		--source tests/fixtures/localize/KR \
 		--target tests/fixtures/localize/LLC_zh-CN \
