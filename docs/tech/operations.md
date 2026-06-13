@@ -136,6 +136,13 @@ python3 -m limbus_translate.cli eval apply-review \
   --review build/gold-review/review.csv \
   --output cache/eval/gold-curated.json
 
+python3 -m limbus_translate.cli state apply \
+  --source /path/to/LocalizeLimbusCompany/KR \
+  --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
+  --units build/missing-units.json \
+  --state cache/state/reviewed.json \
+  --output build/LLC_zh-CN-reviewed
+
 python3 -m limbus_translate.cli tm evaluate \
   --memory cache/tm/exact.json \
   --gold cache/eval/gold-curated.json \
@@ -204,6 +211,8 @@ python3 -m limbus_translate.cli terms promote \
 `translate --candidate-cache` 会读取并更新 provider 候选缓存。缓存 key 绑定 provider、source hash、context hash 和 glossary hash，所以术语或 lore 上下文变化后不会误复用旧译文。`translate --request-log` 输出真正发给 provider 的 source、glossary、context、`target_text`、`response_model`、`response_id` 和 `usage`；state、TM 和 candidate cache 命中不会写入 request log。`translate --trace` 输出 JSONL，每行记录 `translation_source`，用于区分 state、TM、candidate cache 和 provider。
 
 `review pack` 会把待译单元、当前候选输出和 QA issue 汇总成 `review.csv` / `review.jsonl`。审校者只需要填写 `approved`，必要时填写 `revised_target`；`review apply` 只接收明确 approved 且有译文的行，写成 `reviewed` / `locked` state，后续 `translate --state` 或 `workflow run --state` 会优先使用并保护这些译文。
+
+`state apply` 会把已有 state 中带 `target_text` 的 reviewed / locked 单元写入同结构输出目录。它不会调用翻译 provider，也不会处理未审校单元；用于在 `review apply` 之后生成只包含人工确认译文的发布候选树。
 
 `terms review-pack` 会从 refined cache 生成 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`。`review.csv` 面向人工审校，保留空白 `approved` 列；`review.jsonl` 保留完整结构化证据；`paratranz-import.csv` 只包含 `decision=term` 且已有 `suggested_target` 的候选，作为平台导入前的审校材料。
 

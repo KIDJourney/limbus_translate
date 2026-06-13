@@ -77,7 +77,7 @@ from .translation_cache import (
     write_translation_request_log,
     write_translation_trace,
 )
-from .translator import overlay_existing_target, translate_units
+from .translator import apply_state_translations, overlay_existing_target, translate_units
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
@@ -640,6 +640,25 @@ def cmd_state_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_state_apply(args: argparse.Namespace) -> int:
+    rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
+    units = [TranslationUnit(**row) for row in rows]
+    source = Path(args.source)
+    target = Path(args.target)
+    output = Path(args.output)
+    overlay_existing_target(source, target, output)
+    applied = apply_state_translations(
+        source_root=source,
+        target_root=target,
+        output_root=output,
+        units=units,
+        states=read_state(Path(args.state)),
+        limit=args.limit,
+    )
+    print(f"state apply complete: {applied} reviewed units -> {args.output}")
+    return 0
+
+
 def cmd_eval_run(args: argparse.Namespace) -> int:
     cases = read_gold_cases(Path(args.gold))
     candidate_cache_path = Path(args.candidate_cache) if args.candidate_cache else None
@@ -1055,6 +1074,14 @@ def build_parser() -> argparse.ArgumentParser:
     state_init.add_argument("--keep-target", action="store_true")
     state_init.add_argument("--note", default="")
     state_init.set_defaults(func=cmd_state_init)
+    state_apply = state_sub.add_parser("apply")
+    state_apply.add_argument("--source", required=True)
+    state_apply.add_argument("--target", required=True)
+    state_apply.add_argument("--units", default="build/missing-units.json")
+    state_apply.add_argument("--state", required=True)
+    state_apply.add_argument("--output", default="build/LLC_zh-CN-reviewed")
+    state_apply.add_argument("--limit", type=int, default=None)
+    state_apply.set_defaults(func=cmd_state_apply)
     return parser
 
 

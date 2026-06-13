@@ -192,6 +192,44 @@ def translate_units(
     return processed_count
 
 
+def apply_state_translations(
+    *,
+    source_root: Path,
+    target_root: Path,
+    output_root: Path,
+    units: list[TranslationUnit],
+    states: dict[str, UnitState],
+    limit: int | None = None,
+) -> int:
+    changed_files: dict[str, object] = {}
+    source_cache: dict[str, object] = {}
+    selected = units[:limit] if limit is not None else units
+    applied_count = 0
+    for unit in selected:
+        state = state_for_unit(unit, states)
+        if state is None or not state.target_text:
+            continue
+        source_file = source_root / unit.relative_file
+        target_file = target_root / unit.relative_file
+        if unit.relative_file not in changed_files:
+            changed_files[unit.relative_file] = load_json(target_file if target_file.exists() else source_file)
+        if unit.relative_file not in source_cache:
+            source_cache[unit.relative_file] = load_json(source_file)
+        if unit.reason == "missing_target_record":
+            path = ensure_missing_data_list_record(
+                changed_files[unit.relative_file],
+                source_cache[unit.relative_file],
+                unit,
+            )
+        else:
+            path = tuple(unit.json_path.split("."))
+        set_path(changed_files[unit.relative_file], path, state.target_text)
+        applied_count += 1
+    for relative_file, data in changed_files.items():
+        dump_json(output_root / relative_file, data)
+    return applied_count
+
+
 def overlay_existing_target(source_root: Path, target_root: Path, output_root: Path) -> None:
     for source_file in source_root.rglob("*.json"):
         relative = source_file.relative_to(source_root)
