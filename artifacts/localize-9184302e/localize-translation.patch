@@ -1,0 +1,212 @@
+diff --git a/LLC_zh-CN/StoryData/3D102A.json b/LLC_zh-CN/StoryData/3D102A.json
+index 5a0825ca..7521d34d 100755
+--- a/LLC_zh-CN/StoryData/3D102A.json
++++ b/LLC_zh-CN/StoryData/3D102A.json
+@@ -153,7 +153,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "퍽"
++      "content": "砰"
+     },
+     {
+       "id": 30,
+diff --git a/LLC_zh-CN/StoryData/3D301B.json b/LLC_zh-CN/StoryData/3D301B.json
+index 1faf26cb..d3603964 100755
+--- a/LLC_zh-CN/StoryData/3D301B.json
++++ b/LLC_zh-CN/StoryData/3D301B.json
+@@ -35,12 +35,12 @@
+     {
+       "id": -1,
+       "model": "파우스트",
+-      "content": "어느 옛날엔… 신을 믿었던 시대가 있다고도 했죠."
++      "content": "在很久以前……据说也曾有过信仰神明的时代。"
+     },
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "딩동댕동 (학교 종소리)"
++      "content": "叮咚叮咚（学校铃声）"
+     },
+     {
+       "id": 7,
+diff --git a/LLC_zh-CN/StoryData/S001A.json b/LLC_zh-CN/StoryData/S001A.json
+index 741b77d1..667b3218 100755
+--- a/LLC_zh-CN/StoryData/S001A.json
++++ b/LLC_zh-CN/StoryData/S001A.json
+@@ -46,16 +46,16 @@
+     {
+       "id": -1,
+       "model": "늑대",
+-      "teller": "늑대",
++      "teller": "狼",
+       "title": "???",
+-      "content": "사자, 언제까지 자빠져 있을 거야? 시간 없어."
++      "content": "狮，你还要趴到什么时候？没时间了。"
+     },
+     {
+       "id": -1,
+       "model": "사자",
+-      "teller": "사자",
++      "teller": "狮",
+       "title": "???",
+-      "content": "…그래, 네 말이 맞았어. 괜히 시간 끌 필요는 없지."
++      "content": "……是啊，你说得对。确实没必要白白拖时间。"
+     },
+     {
+       "id": 8,
+@@ -146,9 +146,9 @@
+     {
+       "id": -1,
+       "model": "사자",
+-      "teller": "사자",
++      "teller": "狮",
+       "title": "???",
+-      "content": "아~ 너무 늑장 부렸다. 이제 정말 끝내자고!"
++      "content": "啊～拖得太久了。现在就真的结束吧！"
+     },
+     {
+       "id": 22,
+diff --git a/LLC_zh-CN/StoryData/S217B.json b/LLC_zh-CN/StoryData/S217B.json
+index a5f37d78..93a61b9c 100755
+--- a/LLC_zh-CN/StoryData/S217B.json
++++ b/LLC_zh-CN/StoryData/S217B.json
+@@ -233,7 +233,7 @@
+     },
+     {
+       "id": -1,
+-      "content": "여기 캠셰이크 타이밍이 안맞는데 더 좋은 방법이 있을까요.."
++      "content": "这里镜头震动的时机对不上，有没有更好的办法……"
+     },
+     {
+       "id": 36,
+diff --git a/LLC_zh-CN/StoryData/S303B.json b/LLC_zh-CN/StoryData/S303B.json
+index 5d856b6f..2ea1e728 100755
+--- a/LLC_zh-CN/StoryData/S303B.json
++++ b/LLC_zh-CN/StoryData/S303B.json
+@@ -465,12 +465,12 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "쾅 쾅 쾅 (철문이 강하게 내려찍는 소리)"
++      "content": "哐！哐！哐！（铁门重重砸下的声音）"
+     },
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "사이렌"
++      "content": "警报声"
+     },
+     {
+       "id": 95,
+diff --git a/LLC_zh-CN/StoryData/S304B.json b/LLC_zh-CN/StoryData/S304B.json
+index d3167cc2..40d50da5 100755
+--- a/LLC_zh-CN/StoryData/S304B.json
++++ b/LLC_zh-CN/StoryData/S304B.json
+@@ -36,7 +36,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "총소리와 폭발 소리"
++      "content": "枪声与爆炸声"
+     },
+     {
+       "id": 7,
+diff --git a/LLC_zh-CN/StoryData/S307B.json b/LLC_zh-CN/StoryData/S307B.json
+index 08cc6414..d2b6e358 100755
+--- a/LLC_zh-CN/StoryData/S307B.json
++++ b/LLC_zh-CN/StoryData/S307B.json
+@@ -144,12 +144,12 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "찰-칵!"
++      "content": "咔嚓！"
+     },
+     {
+       "id": -1,
+       "model": "//CG",
+-      "content": "수감자들을 죽이면서 셀카를 찍고 있는 지크프리트"
++      "content": "齐格飞一边杀死罪人们，一边自拍。"
+     },
+     {
+       "id": 26,
+diff --git a/LLC_zh-CN/StoryData/S310B.json b/LLC_zh-CN/StoryData/S310B.json
+index a6d47c00..9be8982a 100755
+--- a/LLC_zh-CN/StoryData/S310B.json
++++ b/LLC_zh-CN/StoryData/S310B.json
+@@ -101,7 +101,7 @@
+     },
+     {
+       "id": -1,
+-      "content": "SE // 와장창!"
++      "content": "SE // 哗啦！"
+     },
+     {
+       "id": 21,
+diff --git a/LLC_zh-CN/StoryData/S311B.json b/LLC_zh-CN/StoryData/S311B.json
+index 3eb3e648..dae5c5a0 100755
+--- a/LLC_zh-CN/StoryData/S311B.json
++++ b/LLC_zh-CN/StoryData/S311B.json
+@@ -85,7 +85,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "무전기 소리"
++      "content": "无线电声"
+     },
+     {
+       "id": 17,
+@@ -114,7 +114,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "지옥의 기괴한 비명 소리"
++      "content": "地狱般诡异的尖叫声"
+     },
+     {
+       "id": 21,
+@@ -223,7 +223,7 @@
+     },
+     {
+       "id": -1,
+-      "content": "털썩."
++      "content": "扑通。"
+     },
+     {
+       "id": 41,
+diff --git a/LLC_zh-CN/StoryData/S318A.json b/LLC_zh-CN/StoryData/S318A.json
+index 7f7a9e67..1edfa0f5 100755
+--- a/LLC_zh-CN/StoryData/S318A.json
++++ b/LLC_zh-CN/StoryData/S318A.json
+@@ -12,7 +12,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "푹! 푹! 푹! 푹!"
++      "content": "噗嗤！噗嗤！噗嗤！噗嗤！"
+     },
+     {
+       "id": 2,
+@@ -68,7 +68,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "퍽 퍽 퍽"
++      "content": "砰！砰！砰！"
+     },
+     {
+       "id": 14,
+diff --git a/LLC_zh-CN/StoryData/S322B.json b/LLC_zh-CN/StoryData/S322B.json
+index 18108dfd..ed410d9f 100755
+--- a/LLC_zh-CN/StoryData/S322B.json
++++ b/LLC_zh-CN/StoryData/S322B.json
+@@ -128,7 +128,7 @@
+     {
+       "id": -1,
+       "model": "//효과음",
+-      "content": "털썩"
++      "content": "扑通"
+     },
+     {
+       "id": 19,

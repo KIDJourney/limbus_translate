@@ -1,0 +1,246 @@
+{
+  "translations": [
+    {
+      "relative_file": "StoryData/3D102A.json",
+      "json_path": "dataList.30.content",
+      "source_json_path": "dataList.30.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "퍽",
+      "previous_target_text": "퍽",
+      "target_text": "砰",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/3D301B.json",
+      "json_path": "dataList.7.content",
+      "source_json_path": "dataList.7.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "어느 옛날엔… 신을 믿었던 시대가 있다고도 했죠.",
+      "previous_target_text": "어느 옛날엔… 신을 믿었던 시대가 있다고도 했죠.",
+      "target_text": "在很久以前……据说也曾有过信仰神明的时代。",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/3D301B.json",
+      "json_path": "dataList.8.content",
+      "source_json_path": "dataList.8.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "딩동댕동 (학교 종소리)",
+      "previous_target_text": "딩동댕동 (학교 종소리)",
+      "target_text": "叮咚叮咚（学校铃声）",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.8.teller",
+      "source_json_path": "dataList.8.teller",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "늑대",
+      "previous_target_text": "늑대",
+      "target_text": "狼",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.8.content",
+      "source_json_path": "dataList.8.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "사자, 언제까지 자빠져 있을 거야? 시간 없어.",
+      "previous_target_text": "사자, 언제까지 자빠져 있을 거야? 시간 없어.",
+      "target_text": "狮，你还要趴到什么时候？没时间了。",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.9.teller",
+      "source_json_path": "dataList.9.teller",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "사자",
+      "previous_target_text": "사자",
+      "target_text": "狮",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.9.content",
+      "source_json_path": "dataList.9.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "…그래, 네 말이 맞았어. 괜히 시간 끌 필요는 없지.",
+      "previous_target_text": "…그래, 네 말이 맞았어. 괜히 시간 끌 필요는 없지.",
+      "target_text": "……是啊，你说得对。确实没必要白白拖时间。",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.24.teller",
+      "source_json_path": "dataList.24.teller",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "사자",
+      "previous_target_text": "사자",
+      "target_text": "狮",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S001A.json",
+      "json_path": "dataList.24.content",
+      "source_json_path": "dataList.24.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "아~ 너무 늑장 부렸다. 이제 정말 끝내자고!",
+      "previous_target_text": "아~ 너무 늑장 부렸다. 이제 정말 끝내자고!",
+      "target_text": "啊～拖得太久了。现在就真的结束吧！",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S217B.json",
+      "json_path": "dataList.36.content",
+      "source_json_path": "dataList.36.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "여기 캠셰이크 타이밍이 안맞는데 더 좋은 방법이 있을까요..",
+      "previous_target_text": "여기 캠셰이크 타이밍이 안맞는데 더 좋은 방법이 있을까요..",
+      "target_text": "这里镜头震动的时机对不上，有没有更好的办法……",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S303B.json",
+      "json_path": "dataList.95.content",
+      "source_json_path": "dataList.95.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "쾅 쾅 쾅 (철문이 강하게 내려찍는 소리)",
+      "previous_target_text": "쾅 쾅 쾅 (철문이 강하게 내려찍는 소리)",
+      "target_text": "哐！哐！哐！（铁门重重砸下的声音）",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S303B.json",
+      "json_path": "dataList.96.content",
+      "source_json_path": "dataList.96.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "사이렌",
+      "previous_target_text": "사이렌",
+      "target_text": "警报声",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S304B.json",
+      "json_path": "dataList.7.content",
+      "source_json_path": "dataList.7.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "총소리와 폭발 소리",
+      "previous_target_text": "총소리와 폭발 소리",
+      "target_text": "枪声与爆炸声",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S307B.json",
+      "json_path": "dataList.26.content",
+      "source_json_path": "dataList.26.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "찰-칵!",
+      "previous_target_text": "찰-칵!",
+      "target_text": "咔嚓！",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S307B.json",
+      "json_path": "dataList.27.content",
+      "source_json_path": "dataList.27.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "수감자들을 죽이면서 셀카를 찍고 있는 지크프리트",
+      "previous_target_text": "수감자들을 죽이면서 셀카를 찍고 있는 지크프리트",
+      "target_text": "齐格飞一边杀死罪人们，一边自拍。",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S310B.json",
+      "json_path": "dataList.21.content",
+      "source_json_path": "dataList.21.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "SE // 와장창!",
+      "previous_target_text": "SE // 와장창!",
+      "target_text": "SE // 哗啦！",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S311B.json",
+      "json_path": "dataList.17.content",
+      "source_json_path": "dataList.17.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "무전기 소리",
+      "previous_target_text": "무전기 소리",
+      "target_text": "无线电声",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S311B.json",
+      "json_path": "dataList.22.content",
+      "source_json_path": "dataList.22.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "지옥의 기괴한 비명 소리",
+      "previous_target_text": "지옥의 기괴한 비명 소리",
+      "target_text": "地狱般诡异的尖叫声",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S311B.json",
+      "json_path": "dataList.44.content",
+      "source_json_path": "dataList.44.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "털썩.",
+      "previous_target_text": "털썩.",
+      "target_text": "扑通。",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S318A.json",
+      "json_path": "dataList.2.content",
+      "source_json_path": "dataList.2.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "푹! 푹! 푹! 푹!",
+      "previous_target_text": "푹! 푹! 푹! 푹!",
+      "target_text": "噗嗤！噗嗤！噗嗤！噗嗤！",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S318A.json",
+      "json_path": "dataList.15.content",
+      "source_json_path": "dataList.15.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "퍽 퍽 퍽",
+      "previous_target_text": "퍽 퍽 퍽",
+      "target_text": "砰！砰！砰！",
+      "status": "reviewed"
+    },
+    {
+      "relative_file": "StoryData/S322B.json",
+      "json_path": "dataList.20.content",
+      "source_json_path": "dataList.20.content",
+      "stable_key": null,
+      "reason": "target_same_as_source",
+      "source_text": "털썩",
+      "previous_target_text": "털썩",
+      "target_text": "扑通",
+      "status": "reviewed"
+    }
+  ]
+}

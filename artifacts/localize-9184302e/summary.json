@@ -1,0 +1,29 @@
+{
+  "localize_commit": "9184302e785805924807919587cd5264186b19eb",
+  "source_dir": "KR",
+  "target_baseline_dir": "LLC_zh-CN",
+  "mode": "gap-only",
+  "unit_count": 22,
+  "reason_counts": {
+    "target_same_as_source": 22
+  },
+  "reviewed_units": 22,
+  "patch": "localize-translation.patch",
+  "patch_replacements": 22,
+  "patch_changed_files": [
+    "LLC_zh-CN/StoryData/3D102A.json",
+    "LLC_zh-CN/StoryData/3D301B.json",
+    "LLC_zh-CN/StoryData/S001A.json",
+    "LLC_zh-CN/StoryData/S217B.json",
+    "LLC_zh-CN/StoryData/S303B.json",
+    "LLC_zh-CN/StoryData/S304B.json",
+    "LLC_zh-CN/StoryData/S307B.json",
+    "LLC_zh-CN/StoryData/S310B.json",
+    "LLC_zh-CN/StoryData/S311B.json",
+    "LLC_zh-CN/StoryData/S318A.json",
+    "LLC_zh-CN/StoryData/S322B.json"
+  ],
+  "patch_apply_check": true,
+  "qa_issues": 0,
+  "visible_hangul_warnings": 0
+}
