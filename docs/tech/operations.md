@@ -237,6 +237,8 @@ python3 -m limbus_translate.cli terms promote \
 
 `make prepare-current-localize-review` 是面向真实上游更新的审校包入口。它会 checkout `LOCALIZE_COMMIT`（默认 `origin/main`）、同步 Paratranz 术语、以 GitHub `LLC_zh-CN` 为目标基线扫描 gap units，然后运行 `workflow run` 产出 `build/current-review/missing-units.json`、术语候选和 `translation-review/review.csv`。默认 `PROVIDER=dry-run` 只用于打通流程；需要真实候选时可设 `PROVIDER=qwen-mt`、`PROVIDER=openai` 或其他 provider。真实 provider 首跑建议设置 `LIMIT=1` 控制成本，例如 `LIMIT=1 PROVIDER=qwen-mt make prepare-current-localize-review`。若需要只处理某次上游 diff，可设置 `LOCALIZE_BASE=<base-ref>`。
 
+`make finalize-current-localize-review` 是人工审校后的收口入口。默认读取 `build/current-review/translation-review/review.csv`，用 `review apply` 只接收明确 approved 且有译文的行生成 `reviewed-state.json`，随后重新扫描 GitHub `LLC_zh-CN` gap baseline，并用 `workflow finalize --fail-if-pending --fail-on-error` 生成 `build/current-review/finalize/localize-translation.patch`。该命令不调用翻译 provider；如果已有 state，可设置 `STATE_PATH=data/state/localize-reviewed-9184302e.json` 直接复现最终 patch。命令末尾会对 Localize checkout 执行 `git apply --check`。
+
 `make check-provider-env` 会检查真实 provider 运行前提，不调用外部 API，也不会输出密钥内容。`PROVIDER=qwen-mt` 需要安装 `openai` Python package，并设置 `DASHSCOPE_API_KEY` 或 `QWEN_API_KEY`；`PROVIDER=openai` 需要 `OPENAI_API_KEY`。预检通过后，可用 `PROVIDER=qwen-mt make prepare-current-localize-review` 生成真实模型候选审校包。
 
 `make prepare-current-model-eval` 会 checkout 当前 LocalizeLimbusCompany、同步 Paratranz 术语，并从 GitHub `LLC_zh-CN` 现有中文译文构建 provider eval 的 gold set。它默认最多收集 `GOLD_LIMIT=1000` 条参考译文，按 `GOLD_GROUP_BY=tag` 每组抽 `GOLD_PER_GROUP=20` 条，输出 `build/current-model-eval/gold-set.json`、`gold-sample.json` 和 `gold-review/review.csv`。该命令不调用翻译 provider；审校者确认 `review.csv` 后，用 `eval apply-review` 生成 curated gold，再用 `eval compare` 做 qwen / openai 模型赛马。

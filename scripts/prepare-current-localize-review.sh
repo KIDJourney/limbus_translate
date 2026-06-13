@@ -15,6 +15,7 @@ TERMS_CACHE=${TERMS_CACHE:-$WORK_DIR/refined-terms-cache.json}
 PROVIDER=${PROVIDER:-dry-run}
 TERMS_PROVIDER=${TERMS_PROVIDER:-rules}
 LIMIT=${LIMIT:-}
+METADATA_PATH=${METADATA_PATH:-$WORK_DIR/localize-review-metadata.json}
 
 echo "Preparing a Localize review pack from KR to GitHub LLC_zh-CN target baseline."
 echo "Existing Chinese translations are preserved; only gap units are sent through the workflow."
@@ -69,7 +70,7 @@ fi
 
 python3 -m limbus_translate.cli "${workflow_args[@]}"
 
-SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" LIMIT="$LIMIT" python3 - <<'PY'
+SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" LIMIT="$LIMIT" METADATA_PATH="$METADATA_PATH" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -77,6 +78,7 @@ from pathlib import Path
 summary_path = Path(os.environ["SUMMARY_PATH"])
 summary = json.loads(summary_path.read_text(encoding="utf-8"))
 artifacts = summary.get("artifacts", {})
+metadata_path = Path(os.environ["METADATA_PATH"])
 payload = {
     "localize_commit": os.environ["RESOLVED_COMMIT"],
     "mode": "review-pack",
@@ -91,7 +93,10 @@ payload = {
     "translation_review_csv": artifacts.get("translation_review_csv"),
     "term_review_csv": artifacts.get("term_review_csv"),
     "summary": str(summary_path),
+    "metadata": str(metadata_path),
 }
+metadata_path.parent.mkdir(parents=True, exist_ok=True)
+metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
 PY
 

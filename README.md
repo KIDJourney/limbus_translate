@@ -46,6 +46,21 @@ make publish-current-localize-artifact
 
 当前真实批次产物位于 `artifacts/localize-9184302e/`，包含可应用到 LocalizeLimbusCompany `9184302e785805924807919587cd5264186b19eb` 的 `localize-translation.patch`、22 条翻译明细 `translations.json` 和验证摘要 `summary.json`。该 patch 是 gap-only：保留 GitHub `LLC_zh-CN` 现有中文，只替换 22 个目标仍为韩文的缺口。
 
+如果已经在 `build/current-review/translation-review/review.csv` 里确认了译文，可直接收口成 patch：
+
+```bash
+make finalize-current-localize-review
+```
+
+也可以传入已有 reviewed state 复现收口：
+
+```bash
+LOCALIZE_COMMIT=9184302e785805924807919587cd5264186b19eb \
+STATE_PATH=data/state/localize-reviewed-9184302e.json \
+WORK_DIR=build/current-review \
+make finalize-current-localize-review
+```
+
 模型赛马前先准备一份来自 GitHub 现有中文译文的金标审校包：
 
 ```bash
