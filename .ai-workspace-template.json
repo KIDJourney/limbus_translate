@@ -1,0 +1,7 @@
+{
+  "template": "ai_workspace",
+  "version": "0.1.0",
+  "source": "git@github.com:LobotomyTech/ai_workspace.git",
+  "checkout": "/tmp/ai-workspace-template.JLiwZ8",
+  "initialized_at": "2026-06-13T08:59:26Z"
+}
