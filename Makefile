@@ -1,4 +1,4 @@
-.PHONY: validate-docs test smoke sync-glossary reproduce-current-localize
+.PHONY: validate-docs test smoke sync-glossary reproduce-current-localize publish-current-localize-artifact
 
 validate-docs:
 	./scripts/validate-docs.sh
@@ -207,3 +207,6 @@ sync-glossary:
 
 reproduce-current-localize:
 	bash scripts/reproduce-current-localize.sh
+
+publish-current-localize-artifact:
+	bash scripts/publish-current-localize-artifact.sh
