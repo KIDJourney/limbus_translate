@@ -28,6 +28,7 @@
 - 真实 Localize checkout 扫描：通过；默认输出 19 条 `target_same_as_source`，全部为 `StoryData/*.content` 高风险文本；`--include-internal` 可审计 263 条完整同源残留。
 - 真实 Localize TM 构建：通过，输出 92337 条 exact-match 记忆。
 - 真实新增文本术语候选提取：通过，输出 19 条候选；heuristic 会包含短语/整句，需 LLM 或人工二筛。
+- 缺失 `dataList` record 写回：fixture 测试通过，`translate` 会 append 源 record 并替换待译字段。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
 
 ### 风险
@@ -39,7 +40,7 @@
 
 ### 下一步
 
-- 增加 `missing_target_record` 的整条记录生成/插入能力。
+- 增加 reviewed / locked 状态，避免自动覆盖人工定稿。
 - 增加简繁、长度、reviewed / locked 状态和 fuzzy TM。
 - 增加 LLM 术语提炼 provider，把候选短语转成“正式术语 / 非术语 / 需人工判断”。
 - 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。
