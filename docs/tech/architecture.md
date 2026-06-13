@@ -36,7 +36,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配和术语库质量审计 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，构建离线 hashed-vector 索引，并按 anchors、术语、TF-IDF 字符 n-gram 或索引相似度召回 lore 片段 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
-| `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段 |
+| `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、缺译原因、旧目标译文、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段 |
 | `limbus_translate/evaluation.py` | 从参考译文构建 gold set；导出/导入人工审校 gold；调用 provider，输出相似度、格式一致性、术语命中和 pass rate 报告 |
 | `limbus_translate/state.py` | 维护 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元 |
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底；接收 `TranslationRequest.context` 结构化 JSON 上下文 |
@@ -64,7 +64,7 @@ LocalizeLimbusCompany checkout
 11. `workflow run` 把 scan、TM 构建、可选 source-baseline 源文 path diff、可选 glossary audit、术语候选提取/refine/review pack、可选 lore 导入/索引、translate、candidate cache、translation trace、QA 和 translation review pack 串成一次可复现更新，输出工作目录内的 `missing-units.json`、`tm.json`、可选 `glossary-audit.json`、`translation-candidates.json`、`translation-trace.jsonl`、`term-candidates.json`、`refined-terms.json`、`term-review/`、可选 lore cache/index、`qa-report.json`、`translation-review/` 和 `summary.json`。
 12. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
-`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存。未提供 index 时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；提供 `--lore-index` 时使用离线 hashed-vector index 召回。当前还不是外部 embedding 服务或经过 gold set 调参的完整 RAG。
+`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`reason`、`risk`、`previous_target_text`、`terms`、`neighbors`、`memory_examples`、`lore`。其中 `previous_target_text` 只在 `source_changed` 且旧目标译文是中文时填充，用于让 provider 修订旧译文；`neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 包含同文件 TM 示例和基于 `SequenceMatcher` 的跨文件相似 TM 示例，`lore` 来自可维护的世界观资料缓存。未提供 index 时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度召回；提供 `--lore-index` 时使用离线 hashed-vector index 召回。当前还不是外部 embedding 服务或经过 gold set 调参的完整 RAG。
 
 ## 设计原则
 

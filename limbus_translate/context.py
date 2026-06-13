@@ -45,7 +45,9 @@ class TranslationContextBundle:
     json_path: str
     source_json_path: str
     stable_key: str | None
+    reason: str
     risk: str
+    previous_target_text: str
     terms: list[ContextTerm]
     neighbors: list[ContextSnippet]
     memory_examples: list[ContextSnippet]
@@ -77,12 +79,24 @@ def build_translation_context(
         json_path=unit.json_path,
         source_json_path=unit.source_json_path or unit.json_path,
         stable_key=unit.stable_key,
+        reason=unit.reason,
         risk=unit.risk,
+        previous_target_text=previous_target_text(unit),
         terms=[ContextTerm(term.source, term.target, term.note) for term in matched_terms],
         neighbors=neighbor_snippets(unit, source_data, target_data, window=neighbor_window),
         memory_examples=memory_snippets(unit, memory, limit=max_memory_examples),
         lore=lore_context(lore_matches),
     )
+
+
+def previous_target_text(unit: TranslationUnit) -> str:
+    if unit.reason != "source_changed":
+        return ""
+    if not unit.target_text:
+        return ""
+    if contains_hangul(unit.target_text):
+        return ""
+    return unit.target_text
 
 
 def lore_context(matches: list[LoreMatch]) -> list[ContextLore]:

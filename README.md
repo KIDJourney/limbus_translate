@@ -89,7 +89,7 @@ python3 -m limbus_translate.cli translate \
   --provider dry-run
 ```
 
-`--glossary`、`--memory`、`--lore` 和 `--lore-index` 会参与 provider 的结构化上下文包：state 和 exact TM 命中会直接复用译文；未命中时，命中术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段会进入 `TranslationRequest.context`。`--candidate-cache` 会读取并更新 provider 候选缓存，缓存 key 绑定 provider、source hash、context hash 和 glossary hash；`--trace` 会输出 JSONL，记录每条译文来自 state、TM、candidate cache 还是 provider。同时提供 `--lore` 与 `--lore-index` 时，翻译上下文优先使用索引召回。
+`--glossary`、`--memory`、`--lore` 和 `--lore-index` 会参与 provider 的结构化上下文包：state 和 exact TM 命中会直接复用译文；未命中时，命中术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段会进入 `TranslationRequest.context`。`source_changed` 单元会把旧中文写入 `previous_target_text`，让模型基于旧译文修订而不是从零翻译。`--candidate-cache` 会读取并更新 provider 候选缓存，缓存 key 绑定 provider、source hash、context hash 和 glossary hash；`--trace` 会输出 JSONL，记录每条译文来自 state、TM、candidate cache 还是 provider。同时提供 `--lore` 与 `--lore-index` 时，翻译上下文优先使用索引召回。
 
 构建翻译记忆和 QA 报告：
 

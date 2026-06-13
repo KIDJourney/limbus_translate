@@ -16,7 +16,8 @@
 | TranslationUnit | 本项目内部待译单元，包含文件、JSON path、源文、目标文和缺译原因 |
 | Source baseline | 上一版本的 `KR` 目录，用于和当前 `KR` 做 JSON path 级源文变化比较 |
 | `source_changed` | 扫描原因之一，表示源文相对 baseline 已变化，即使目标已有旧中文也需要重新翻译或审校 |
-| TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
+| TranslationContextBundle | 本项目传给 provider 的结构化翻译上下文，当前包含位置、缺译原因、旧目标译文、风险、术语、同文件邻近文本、同文件 TM、基础 fuzzy TM 示例和 lore 片段；可由离线 lore index 召回，但还不是外部 embedding RAG |
+| `previous_target_text` | `source_changed` 单元的旧中文译文，用于指导 provider 在旧译文基础上修订 |
 | Candidate translation cache | Provider 候选译文缓存；key 绑定 provider、source hash、context hash 和 glossary hash，避免上下文变化时误复用 |
 | Translation trace | 每条译文处理的 JSONL provenance 记录，区分 `state:*`、`memory`、`candidate_cache` 和 `provider` |
 | LoreEntry | 本地世界观资料缓存条目，包含标题、正文、标签、来源和 anchors，用于翻译上下文召回 |

@@ -2,6 +2,24 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Source_changed 旧译文上下文
+
+### 已完成
+
+- `TranslationContextBundle` 新增 `reason` 和 `previous_target_text` 字段。
+- `source_changed` 单元如果目标已有旧中文，会把旧译文写入 `previous_target_text`。
+- OpenAI 翻译 prompt 新增指令：当 `context.previous_target_text` 存在时，基于旧中文修订以匹配新韩文源文。
+
+### 验证状态
+
+- `make test`：通过，直接测试覆盖 provider context 中的 `reason=source_changed` 和 `previous_target_text=旧译文。`。
+- `make smoke`：通过。
+- 真实 Localize RAW source_changed 抽样：`BattleSpeechBubbleDlg.json dataList.115.dlg` context 中 `reason=source_changed`，`previous_target_text_len=7`。
+
+### 风险
+
+- 旧译文注入能改善重译连续性，但不会自动证明旧译文风格或术语正确；仍需要 QA 和 review pack。
+
 ## 2026-06-13 — Source-baseline path 级增量扫描
 
 ### 已完成

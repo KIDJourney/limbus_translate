@@ -7,7 +7,7 @@ from limbus_translate.glossary import GlossaryTerm
 from limbus_translate.lore import LoreEntry, build_lore_index
 from limbus_translate.memory import MemoryEntry
 from limbus_translate.providers import TranslationRequest
-from limbus_translate.scanner import scan_missing
+from limbus_translate.scanner import collect_changed_source_paths, scan_missing
 from limbus_translate.translator import overlay_existing_target, translate_units
 
 
@@ -181,3 +181,44 @@ def test_context_includes_cross_file_similar_memory() -> None:
     assert examples[0]["target_text"] == "进入镜牢。"
     assert examples[0]["score"] >= 0.35
     assert all(item["target_text"] != "巴士停下了。" for item in examples)
+
+
+def test_source_changed_context_includes_previous_target_text() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        baseline = root / "KR_before"
+        source = root / "KR"
+        target = root / "LLC_zh-CN"
+        output = root / "out"
+        baseline.mkdir()
+        source.mkdir()
+        target.mkdir()
+        (baseline / "Sample.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": "예전 문장입니다."}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (source / "Sample.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": "새로운 문장입니다."}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (target / "Sample.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": "旧译文。"}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        provider = CapturingProvider()
+        changed_paths = collect_changed_source_paths(baseline, source)
+        units = scan_missing(source, target, include_source_paths=changed_paths)
+
+        overlay_existing_target(source, target, output)
+        translate_units(
+            source_root=source,
+            target_root=target,
+            output_root=output,
+            units=units,
+            glossary=[],
+            provider=provider,
+        )
+
+    context = json.loads(provider.requests[0].context)
+    assert context["reason"] == "source_changed"
+    assert context["previous_target_text"] == "旧译文。"

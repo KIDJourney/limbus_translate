@@ -30,7 +30,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 术语候选二次提炼 | 将 heuristic 候选分为正式术语、非术语、需人工确认，并可给出建议译名 | 已完成 rules provider 初版，OpenAI provider 可选；可导出 review pack，审校确认后可写入本地 glossary cache；`workflow run` 默认产出本次新增术语候选和审校包 |
 | 离线术语导入 | 支持 CSV / JSON 术语导入 | 已完成初版 |
 | 翻译 provider | `dry-run` 可测试，`openai` 可作为 GPT 兜底 | 已完成初版 |
-| 翻译上下文包 | 将同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版 |
+| 翻译上下文包 | 将缺译原因、旧译文、同文件邻近文本、exact TM 示例、相似 TM 示例、术语命中和世界观资料片段注入 provider context | 已完成轻量 ContextBundle 初版；`source_changed` 会携带旧中文供 provider 修订 |
 | 候选译文缓存 / Trace | 缓存 provider 候选译文并记录每条译文来源，避免重复模型调用并支持复盘 | 已完成初版；cache key 绑定 provider、source hash、context hash 和 glossary hash，workflow 默认产出候选缓存与 JSONL trace |
 | 世界观资料缓存 | 从本地笔记导入可召回 lore cache，辅助角色、组织、设定一致性 | 已完成 Markdown / JSON / JSONL / CSV / TXT 导入、关键词召回、轻量 TF-IDF n-gram 和离线 hashed-vector index 初版 |
 | 端到端更新工作流 | 一条命令串联扫描、TM、术语候选审校包、lore index、候选翻译、QA 和 summary 产物 | 已完成 `workflow run` CLI 初版；正式上线仍需要人工审校与真实 provider 门禁 |

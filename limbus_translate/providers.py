@@ -39,6 +39,7 @@ class OpenAIProvider:
             "style": [
                 "Keep the original placeholders, tags, punctuation intent, and line breaks.",
                 "Use the glossary when applicable.",
+                "If context.previous_target_text is present, revise that existing Chinese translation to match the new Korean source.",
                 "Return only the translated Chinese text.",
             ],
             "context": request.context,
