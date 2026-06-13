@@ -83,7 +83,7 @@ make compare-current-models
 
 默认 provider 是 `baseline=dry-run`，用于验证评估管线；真实 provider 会先执行环境预检。
 
-术语审校表 `build/current-review/term-review/review.csv` 里填入 `target` 并把 `approved` 标为 `yes` 后，运行 `make apply-current-term-review` 会更新 `cache/glossary/local-reviewed.json` 和 `cache/glossary/active.json`。这两个 cache 默认不提交，用于下一轮本地翻译复用；需要在正式术语库沉淀时，再从审校 CSV 或 active glossary 导入 Paratranz。
+术语审校表 `build/current-review/term-review/review.csv` 里填入 `target` 并把 `approved` 标为 `yes` 后，运行 `make apply-current-term-review` 会更新 `cache/glossary/local-reviewed.json` 和 `cache/glossary/active.json`。这两个 cache 默认不提交；下一轮 `make prepare-current-localize-review` 会自动把 `cache/glossary/local-reviewed.json` 并入本轮 Paratranz cache，除非显式传入 `GLOSSARY_PATH`。需要在正式术语库沉淀时，再从审校 CSV 或 active glossary 导入 Paratranz。
 
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 

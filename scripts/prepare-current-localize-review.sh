@@ -6,7 +6,15 @@ LOCALIZE_REPO=${LOCALIZE_REPO:-build/real-localize}
 LOCALIZE_COMMIT=${LOCALIZE_COMMIT:-origin/main}
 LOCALIZE_BASE=${LOCALIZE_BASE:-}
 WORK_DIR=${WORK_DIR:-build/current-review}
+GLOSSARY_PATH_WAS_SET=${GLOSSARY_PATH+x}
 GLOSSARY_PATH=${GLOSSARY_PATH:-$WORK_DIR/paratranz-6860.json}
+if [[ -n "$GLOSSARY_PATH_WAS_SET" ]]; then
+  PARATRANZ_PATH=${PARATRANZ_PATH:-$GLOSSARY_PATH}
+else
+  PARATRANZ_PATH=${PARATRANZ_PATH:-$WORK_DIR/paratranz-6860.json}
+fi
+LOCAL_REVIEWED_GLOSSARY=${LOCAL_REVIEWED_GLOSSARY:-cache/glossary/local-reviewed.json}
+ACTIVE_GLOSSARY_PATH=${ACTIVE_GLOSSARY_PATH:-$WORK_DIR/active-glossary.json}
 GLOSSARY_FALLBACK=${GLOSSARY_FALLBACK:-build/current-real/paratranz-6860.json}
 OUTPUT_DIR=${OUTPUT_DIR:-$WORK_DIR/LLC_zh-CN-candidates}
 SCAN_POLICY=${SCAN_POLICY:-config/scan-policy.sample.json}
@@ -31,15 +39,25 @@ RESOLVED_COMMIT=$(git -C "$LOCALIZE_REPO" rev-parse HEAD)
 
 if ! python3 -m limbus_translate.cli glossary sync-paratranz \
   --project-id 6860 \
-  --output "$GLOSSARY_PATH"; then
+  --output "$PARATRANZ_PATH"; then
   if [[ -f "$GLOSSARY_FALLBACK" ]]; then
-    mkdir -p "$(dirname "$GLOSSARY_PATH")"
-    cp "$GLOSSARY_FALLBACK" "$GLOSSARY_PATH"
+    mkdir -p "$(dirname "$PARATRANZ_PATH")"
+    cp "$GLOSSARY_FALLBACK" "$PARATRANZ_PATH"
     echo "Paratranz sync failed; reused cached glossary: $GLOSSARY_FALLBACK"
   else
     echo "Paratranz sync failed and no fallback glossary exists: $GLOSSARY_FALLBACK" >&2
     exit 1
   fi
+fi
+
+if [[ -z "$GLOSSARY_PATH_WAS_SET" && -f "$LOCAL_REVIEWED_GLOSSARY" ]]; then
+  python3 -m limbus_translate.cli glossary merge \
+    --input "$PARATRANZ_PATH" \
+    --input "$LOCAL_REVIEWED_GLOSSARY" \
+    --output "$ACTIVE_GLOSSARY_PATH"
+  GLOSSARY_PATH="$ACTIVE_GLOSSARY_PATH"
+elif [[ -z "$GLOSSARY_PATH_WAS_SET" ]]; then
+  GLOSSARY_PATH="$PARATRANZ_PATH"
 fi
 
 workflow_args=(
@@ -70,7 +88,7 @@ fi
 
 python3 -m limbus_translate.cli "${workflow_args[@]}"
 
-SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" LIMIT="$LIMIT" METADATA_PATH="$METADATA_PATH" python3 - <<'PY'
+SUMMARY_PATH="$WORK_DIR/summary.json" RESOLVED_COMMIT="$RESOLVED_COMMIT" PROVIDER="$PROVIDER" LIMIT="$LIMIT" METADATA_PATH="$METADATA_PATH" GLOSSARY_PATH="$GLOSSARY_PATH" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -94,6 +112,8 @@ payload = {
     "term_review_csv": artifacts.get("term_review_csv"),
     "summary": str(summary_path),
     "metadata": str(metadata_path),
+    "glossary_path": os.environ["GLOSSARY_PATH"],
+    "glossary_audit": artifacts.get("glossary_audit", ""),
 }
 metadata_path.parent.mkdir(parents=True, exist_ok=True)
 metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
