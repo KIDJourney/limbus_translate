@@ -13,6 +13,7 @@
   - `glossary sync-paratranz`：同步 Paratranz 项目 `6860` 术语。
   - `glossary import`：离线导入 CSV / JSON 术语。
   - `translate`：用 provider 生成同结构输出，默认 `dry-run`。
+  - `context.py`：为 provider 构建结构化 `TranslationContextBundle`，包含位置、风险、术语、同文件邻近文本和同文件 TM 示例。
   - `qa`：检查韩文残留、占位符、标签、数字、换行和术语命中。
   - `tm build`：构建 exact-match 翻译记忆。
   - `terms extract`：从新增文本提取候选术语/短语缓存。
@@ -33,6 +34,7 @@
 - `terms refine --provider rules`：fixture smoke 通过，输出 3 条 refined 记录，决策分布为 `needs_review=1`、`not_term=2`；真实 Localize 候选 19 条 refine 通过，输出 `needs_review=10`、`not_term=9`。
 - 缺失 `dataList` record 写回：fixture 测试通过，`translate` 会 append 源 record 并替换待译字段。
 - `reviewed` / `locked` 状态：fixture 测试通过，锁定单元不会被 `translate` 覆盖。
+- 结构化上下文包：`tests.test_context.test_translate_provider_receives_structured_context` 通过，provider 收到术语、邻近文本和同文件 TM 示例；真实 Localize checkout dry-run translate 限制 3 条通过。
 - QA 简繁和长度风险：fixture 测试通过。
 - `python3 -m pytest -q` 未运行成功，因为系统 Python 没有安装 `pytest`；已用无依赖直接测试替代。
 
@@ -47,7 +49,7 @@
 
 - 增加 fuzzy TM。
 - 增加 MQM 分类和按 UI 容器的长度策略。
-- 把 refined term 审校结果回写正式 termbase，并接入翻译 prompt 的世界观上下文包。
+- 把 refined term 审校结果回写正式 termbase，并把上下文包扩展为世界观资料、fuzzy TM 和相似句检索。
 - 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。
 
 ## 2026-06-09 — 文档骨架初版

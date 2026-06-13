@@ -15,7 +15,7 @@
 |---|---|---|
 | 文档结构检查 | 根目录入口、关键目录、关键 README 是否存在 | `make validate-docs` |
 | Markdown 链接检查 | `docs/` 和根目录入口中的相对 Markdown 链接 | `make validate-docs` |
-| 直接单元测试 | 扫描器和术语匹配核心行为 | `make test` |
+| 直接单元测试 | 扫描器、术语匹配、ContextBundle/provider context 传递核心行为 | `make test` |
 | CLI smoke | fixture 扫描、TM 构建、state 初始化、dry-run 同结构输出、QA 报告、术语候选缓存和 rules 二次提炼缓存 | `make smoke` |
 | Paratranz smoke | 项目 `6860` 术语同步 | `make sync-glossary` |
 | TODO / 待确认扫描 | 发现未解决问题和阻塞项 | `rg "TODO|待确认|阻塞" docs` |
@@ -34,6 +34,6 @@
 
 - 修改 `json_paths.py` 或 `scanner.py`：执行 `make test` 和真实 checkout 扫描。
 - 修改 `glossary.py`：执行 `make test` 和 `make sync-glossary`。
-- 修改 `translator.py` 或 provider：执行 `make smoke`。
+- 修改 `context.py`、`translator.py` 或 provider：执行 `make test` 和 `make smoke`。
 - 修改 `terms.py` 或 term refiner provider：执行 `make test` 和 `make smoke`；OpenAI term refiner 变化至少需要 mock/fixture 验证，真实 API 调用单独记录。
 - 修改文档或 Markdown 链接：执行 `make validate-docs`。

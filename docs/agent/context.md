@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-Limbus Translate 当前处于 v0.1 工具骨架阶段。仓库已通过 `ai-workspace-init` 初始化为 AI Workspace，并新增 Python CLI，用于扫描 LocalizeLimbusCompany 韩文资源与简中资源的缺译差异、同步 Paratranz 术语、生成 dry-run 翻译输出。
+Limbus Translate 当前处于 v0.1 工具骨架阶段。仓库已通过 `ai-workspace-init` 初始化为 AI Workspace，并新增 Python CLI，用于扫描 LocalizeLimbusCompany 韩文资源与简中资源的缺译差异、同步 Paratranz 术语、生成 dry-run 翻译输出。`translate` provider 已接收结构化上下文包，包含位置、风险、术语、同文件邻近文本和同文件 TM 示例。
 
 ## 默认假设
 
@@ -13,6 +13,7 @@ Limbus Translate 当前处于 v0.1 工具骨架阶段。仓库已通过 `ai-work
 3. Paratranz 项目 `6860` 是术语主来源，API 当前匿名可读，术语数约 1963。
 4. 翻译流程必须保留 JSON 结构、占位符、标签、换行和文件路径。
 5. 没有模型 API key 时，`dry-run` provider 仍应能验证扫描和写回链路。
+6. 上下文包只服务候选译文生成，不改变 JSON 写回、state lock、QA 和人审门槛。
 
 ## 参考来源
 

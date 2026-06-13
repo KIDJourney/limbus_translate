@@ -4,6 +4,7 @@ import copy
 from pathlib import Path
 from typing import Any
 
+from .context import build_translation_context
 from .glossary import GlossaryTerm, match_terms
 from .json_paths import get_path, set_path
 from .memory import MemoryEntry
@@ -66,11 +67,18 @@ def translate_units(
                 translated = memory_entry.target_text
             else:
                 matched = match_terms(unit.source_text, glossary)
+                context = build_translation_context(
+                    unit=unit,
+                    source_data=source_cache[unit.relative_file],
+                    target_data=changed_files[unit.relative_file],
+                    matched_terms=matched,
+                    memory=memory or {},
+                )
                 translated = provider.translate(
                     TranslationRequest(
                         source_text=unit.source_text,
                         glossary=[(term.source, term.target, term.note) for term in matched],
-                        context=f"{unit.relative_file}::{unit.json_path}; risk={unit.risk}",
+                        context=context.to_json(),
                     )
                 )
         if unit.reason == "missing_target_record":

@@ -13,6 +13,7 @@ LocalizeLimbusCompany checkout
     -> scanner.py: semantic JSON path diff
     -> glossary.py: Paratranz / offline term cache
     -> memory.py: exact translation memory
+    -> context.py: structured context bundle for provider prompts
     -> state.py: reviewed / locked unit state
     -> providers.py: dry-run / OpenAI provider
     -> translator.py: overlay existing target tree and set translated JSON paths
@@ -29,9 +30,10 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
+| `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、风险、术语、同文件邻近文本和同文件 TM 示例 |
 | `limbus_translate/state.py` | 维护 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元 |
-| `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
-| `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
+| `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底；接收 `TranslationRequest.context` 结构化 JSON 上下文 |
+| `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；非 exact TM 命中时构建上下文包并传给 provider；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行和术语命中 |
 | `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语；通过 `rules` / `openai` provider 输出 refined term cache |
 | `limbus_translate/cli.py` | 命令行入口 |
@@ -43,11 +45,13 @@ LocalizeLimbusCompany checkout
 1. `scan` 读取 `KR` 与 `LLC_zh-CN`，输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
 3. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
-4. `translate` 读取待译单元、术语缓存和 TM，按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。
+4. `translate` 读取待译单元、术语缓存和 TM，先查 state / exact TM；未命中时匹配术语并构建结构化 context bundle，再按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。
 5. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
 6. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险。
 7. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review` 后进入人工审校或正式 termbase。
 8. 审校通过后，译文进入目标语言包、TM 和回归评估集。
+
+`TranslationContextBundle` 当前字段为 `relative_file`、`json_path`、`source_json_path`、`stable_key`、`risk`、`terms`、`neighbors`、`memory_examples`。其中 `neighbors` 来自同文件邻近可翻译 JSON 文本，`memory_examples` 当前是同文件 exact TM 示例，不是 fuzzy TM 或外部向量检索。
 
 ## 设计原则
 
@@ -56,5 +60,6 @@ LocalizeLimbusCompany checkout
 | 语义 diff 优先 | 不做文本行 diff；以 JSON path、唯一记录 id、字段类型和 source hash 为核心 |
 | 格式不破坏 | 保留 JSON 结构、占位符、标签、换行和目标文件路径 |
 | 术语先行 | 翻译前注入 Paratranz / 本地术语，翻译后做术语命中 QA |
+| 上下文显式化 | Provider 接收 JSON context，而不是隐式依赖单句 prompt |
 | Provider 可替换 | 不把扫描、术语、写回逻辑绑定到某个模型供应商；术语提炼默认 `rules` 离线可跑，`openai` 可选 |
 | 可离线验证 | 没有 API key 时也能用 dry-run 测通扫描和输出 |
