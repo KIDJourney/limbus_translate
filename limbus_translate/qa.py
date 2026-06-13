@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from .formatting import profile_text, same_multiset
 from .glossary import GlossaryTerm, match_terms
@@ -43,10 +44,94 @@ def mqm_category(code: str) -> str:
     return MQM_CATEGORY_BY_CODE.get(code, "other")
 
 
-def check_pair(unit: TranslationUnit, translated_text: str, glossary: list[GlossaryTerm]) -> list[QaIssue]:
+@dataclass(frozen=True)
+class LengthPolicy:
+    max_line_length: int = 80
+    max_ratio: float = 2.2
+    min_ratio: float = 0.25
+    min_source_length: int = 10
+
+
+@dataclass(frozen=True)
+class LengthPolicyRule:
+    name: str
+    policy: LengthPolicy
+    relative_file: str = ""
+    relative_file_prefix: str = ""
+    json_path_suffix: str = ""
+    risk: str = ""
+
+
+@dataclass(frozen=True)
+class LengthPolicySet:
+    default: LengthPolicy
+    rules: list[LengthPolicyRule]
+
+    def policy_for(self, unit: TranslationUnit) -> LengthPolicy:
+        for rule in self.rules:
+            if rule_matches(rule, unit):
+                return rule.policy
+        return self.default
+
+
+DEFAULT_LENGTH_POLICY_SET = LengthPolicySet(default=LengthPolicy(), rules=[])
+
+
+def rule_matches(rule: LengthPolicyRule, unit: TranslationUnit) -> bool:
+    if rule.relative_file and unit.relative_file != rule.relative_file:
+        return False
+    if rule.relative_file_prefix and not unit.relative_file.startswith(rule.relative_file_prefix):
+        return False
+    if rule.json_path_suffix and not unit.json_path.endswith(rule.json_path_suffix):
+        return False
+    if rule.risk and unit.risk != rule.risk:
+        return False
+    return True
+
+
+def read_length_policy(path: Path) -> LengthPolicySet:
+    if not path.exists():
+        return DEFAULT_LENGTH_POLICY_SET
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    default = _policy_from_raw(payload.get("default", {}) if isinstance(payload, dict) else {})
+    rules: list[LengthPolicyRule] = []
+    for row in payload.get("rules", []) if isinstance(payload, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        rules.append(
+            LengthPolicyRule(
+                name=str(row.get("name", "")),
+                policy=_policy_from_raw(row, base=default),
+                relative_file=str(row.get("relative_file", "")),
+                relative_file_prefix=str(row.get("relative_file_prefix", "")),
+                json_path_suffix=str(row.get("json_path_suffix", "")),
+                risk=str(row.get("risk", "")),
+            )
+        )
+    return LengthPolicySet(default=default, rules=rules)
+
+
+def _policy_from_raw(raw: dict[str, Any], *, base: LengthPolicy | None = None) -> LengthPolicy:
+    base = base or LengthPolicy()
+    return LengthPolicy(
+        max_line_length=int(raw.get("max_line_length", base.max_line_length)),
+        max_ratio=float(raw.get("max_ratio", base.max_ratio)),
+        min_ratio=float(raw.get("min_ratio", base.min_ratio)),
+        min_source_length=int(raw.get("min_source_length", base.min_source_length)),
+    )
+
+
+def check_pair(
+    unit: TranslationUnit,
+    translated_text: str,
+    glossary: list[GlossaryTerm],
+    *,
+    length_policy: LengthPolicySet | None = None,
+) -> list[QaIssue]:
     issues: list[QaIssue] = []
     source_profile = profile_text(unit.source_text)
     target_profile = profile_text(translated_text)
+    policy = (length_policy or DEFAULT_LENGTH_POLICY_SET).policy_for(unit)
 
     def issue(severity: str, code: str, message: str) -> None:
         issues.append(QaIssue(severity, code, unit.relative_file, unit.json_path, message, mqm_category(code)))
@@ -68,15 +153,15 @@ def check_pair(unit: TranslationUnit, translated_text: str, glossary: list[Gloss
     traditional_hits = sorted({ch for ch in translated_text if ch in TRADITIONAL_CHARS})
     if traditional_hits:
         issue("warning", "traditional_chinese", f"疑似包含繁体字: {''.join(traditional_hits[:10])}")
-    if len(unit.source_text) >= 10:
+    if len(unit.source_text) >= policy.min_source_length:
         ratio = len(translated_text) / max(len(unit.source_text), 1)
-        if ratio > 2.2:
+        if ratio > policy.max_ratio:
             issue("warning", "length_ratio_high", f"译文长度比例过高: {ratio:.2f}")
-        elif ratio < 0.25:
+        elif ratio < policy.min_ratio:
             issue("warning", "length_ratio_low", f"译文长度比例过低: {ratio:.2f}")
     longest_line = max((len(line) for line in translated_text.splitlines()), default=len(translated_text))
-    if longest_line > 80:
-        issue("warning", "line_too_long", f"最长行 {longest_line} 字，可能超出 UI 宽度")
+    if longest_line > policy.max_line_length:
+        issue("warning", "line_too_long", f"最长行 {longest_line} 字，超过策略上限 {policy.max_line_length}")
 
     for term in match_terms(unit.source_text, glossary):
         if term.target and term.target not in translated_text:
@@ -89,6 +174,7 @@ def qa_output(
     units: list[TranslationUnit],
     output_root: Path,
     glossary: list[GlossaryTerm],
+    length_policy: LengthPolicySet | None = None,
 ) -> list[QaIssue]:
     issues: list[QaIssue] = []
     loaded: dict[str, object] = {}
@@ -134,7 +220,7 @@ def qa_output(
                 )
             )
             continue
-        issues.extend(check_pair(unit, translated_text, glossary))
+        issues.extend(check_pair(unit, translated_text, glossary, length_policy=length_policy))
     return issues
 
 

@@ -64,7 +64,8 @@ python3 -m limbus_translate.cli qa \
   --units build/missing-units.json \
   --output-root build/LLC_zh-CN \
   --glossary cache/glossary/paratranz-6860.json \
-  --report build/qa-report.json
+  --report build/qa-report.json \
+  --length-policy config/length-policy.sample.json
 
 python3 -m limbus_translate.cli terms extract \
   --units build/missing-units.json \
@@ -99,6 +100,8 @@ OPENAI_TERM_MODEL=gpt-4.1 python3 -m limbus_translate.cli terms refine --provide
 ├── AGENTS.md
 ├── README.md
 ├── Makefile
+├── config
+│   └── length-policy.sample.json
 ├── limbus_translate
 │   ├── cli.py
 │   ├── context.py

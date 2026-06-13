@@ -8,7 +8,7 @@ from pathlib import Path
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
-from .qa import qa_output, summarize_issues, write_issues
+from .qa import qa_output, read_length_policy, summarize_issues, write_issues
 from .scanner import TranslationUnit, scan_missing, write_units
 from .state import UnitState, read_state, write_state
 from .terms import (
@@ -84,7 +84,8 @@ def cmd_qa(args: argparse.Namespace) -> int:
     rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
     units = [TranslationUnit(**row) for row in rows]
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
-    issues = qa_output(units=units, output_root=Path(args.output_root), glossary=glossary)
+    length_policy = read_length_policy(Path(args.length_policy)) if args.length_policy else None
+    issues = qa_output(units=units, output_root=Path(args.output_root), glossary=glossary, length_policy=length_policy)
     write_issues(Path(args.report), issues)
     print(f"qa complete: {len(issues)} issues -> {args.report}")
     print(json.dumps(summarize_issues(issues), ensure_ascii=False, sort_keys=True))
@@ -191,6 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
     qa.add_argument("--output-root", default="build/LLC_zh-CN")
     qa.add_argument("--glossary", default="")
     qa.add_argument("--report", default="build/qa-report.json")
+    qa.add_argument("--length-policy", default="")
     qa.add_argument("--fail-on-error", action="store_true")
     qa.set_defaults(func=cmd_qa)
 

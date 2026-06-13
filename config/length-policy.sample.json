@@ -1,0 +1,27 @@
+{
+  "default": {
+    "max_line_length": 80,
+    "max_ratio": 2.2,
+    "min_ratio": 0.25,
+    "min_source_length": 10
+  },
+  "rules": [
+    {
+      "name": "story content text",
+      "relative_file_prefix": "StoryData/",
+      "json_path_suffix": ".content",
+      "max_line_length": 64,
+      "max_ratio": 2.0,
+      "min_ratio": 0.3,
+      "min_source_length": 8
+    },
+    {
+      "name": "short names",
+      "json_path_suffix": ".name",
+      "max_line_length": 24,
+      "max_ratio": 1.8,
+      "min_ratio": 0.2,
+      "min_source_length": 2
+    }
+  ]
+}

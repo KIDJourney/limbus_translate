@@ -1,4 +1,8 @@
-from limbus_translate.qa import check_pair, summarize_issues
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from limbus_translate.qa import check_pair, read_length_policy, summarize_issues
 from limbus_translate.scanner import TranslationUnit
 
 
@@ -52,3 +56,49 @@ def test_qa_detects_traditional_and_length() -> None:
     assert summary["by_category"]["locale_convention"] == 1
     assert summary["by_category"]["design"] >= 2
     assert summary["by_code"]["traditional_chinese"] == 1
+
+
+def test_qa_uses_path_specific_length_policy() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "length-policy.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "default": {"max_line_length": 80, "max_ratio": 2.2, "min_ratio": 0.25},
+                    "rules": [
+                        {
+                            "name": "compact story content",
+                            "relative_file_prefix": "StoryData/",
+                            "json_path_suffix": ".content",
+                            "max_line_length": 12,
+                            "max_ratio": 1.5,
+                            "min_ratio": 0.2,
+                            "min_source_length": 1,
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        policy = read_length_policy(path)
+
+    unit = TranslationUnit(
+        unit_id="u1",
+        relative_file="StoryData/Sample.json",
+        json_path="dataList.0.content",
+        source_text="짧은 문장",
+        target_text="",
+        reason="missing_target_text",
+        source_hash="hash",
+        target_hash=None,
+        placeholders=[],
+        tags=[],
+        numbers=[],
+        line_breaks=0,
+        risk="high",
+    )
+    issues = check_pair(unit, "这是一段明显超过十二个字的译文", [], length_policy=policy)
+    line_issue = next(issue for issue in issues if issue.code == "line_too_long")
+    assert line_issue.category == "design"
+    assert "策略上限 12" in line_issue.message

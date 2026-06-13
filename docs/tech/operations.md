@@ -47,7 +47,8 @@ python3 -m limbus_translate.cli qa \
   --units build/missing-units.json \
   --output-root build/LLC_zh-CN \
   --glossary cache/glossary/paratranz-6860.json \
-  --report build/qa-report.json
+  --report build/qa-report.json \
+  --length-policy config/length-policy.sample.json
 
 python3 -m limbus_translate.cli terms extract \
   --units build/missing-units.json \
@@ -68,6 +69,8 @@ python3 -m limbus_translate.cli terms promote \
 `terms refine --provider openai` 可用于正式术语初筛和建议译名，但它依赖 OpenAI 可选依赖与 API key；输出仍应进入人工审校，不直接写入正式 termbase。
 
 `terms promote` 只导出 `decision=term` 且存在 `suggested_target` 的记录；`needs_review` 不会进入正式术语缓存。
+
+`qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值。当前示例是字符级策略，不替代真实 UI 像素测量。
 
 ## 文档验证
 
