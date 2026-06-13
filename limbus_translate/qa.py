@@ -181,9 +181,16 @@ def check_pair(
             )
 
     for term in match_terms(unit.source_text, glossary):
-        if term.target and term.target not in translated_text:
+        if len(term.source.strip()) < 2:
+            continue
+        if term.target and not target_term_hit(term.target, translated_text):
             issue("warning", "term_miss", f"术语未命中: {term.source} => {term.target}")
     return issues
+
+
+def target_term_hit(term_target: str, translated_text: str) -> bool:
+    alternatives = [part.strip() for part in re.split(r"[/|、,，;；]", term_target) if part.strip()]
+    return any(alternative in translated_text for alternative in alternatives)
 
 
 def display_width(text: str) -> int:
