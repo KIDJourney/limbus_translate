@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,10 @@ class TranslationRequestLogEntry:
     glossary: list[tuple[str, str, str]]
     context: str
     created_at: str
+    target_text: str = ""
+    response_model: str = ""
+    response_id: str = ""
+    usage: dict[str, Any] = field(default_factory=dict)
 
 
 def _utc_now() -> str:
@@ -131,6 +136,10 @@ def make_request_log_entry(
     source_text: str,
     glossary: list[tuple[str, str, str]],
     context: str,
+    target_text: str = "",
+    response_model: str = "",
+    response_id: str = "",
+    usage: dict[str, Any] | None = None,
 ) -> TranslationRequestLogEntry:
     return TranslationRequestLogEntry(
         cache_key=cache_key,
@@ -146,6 +155,10 @@ def make_request_log_entry(
         glossary=glossary,
         context=context,
         created_at=_utc_now(),
+        target_text=target_text,
+        response_model=response_model,
+        response_id=response_id,
+        usage=usage or {},
     )
 
 

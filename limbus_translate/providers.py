@@ -19,13 +19,22 @@ class TranslationProvider(Protocol):
 
 
 class DryRunProvider:
+    def __init__(self) -> None:
+        self.last_metadata: dict[str, Any] = {}
+
     def translate(self, request: TranslationRequest) -> str:
+        self.last_metadata = {
+            "response_model": "dry-run",
+            "response_id": "",
+            "usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+        }
         return f"[待译] {request.source_text}"
 
 
 class OpenAIProvider:
     def __init__(self, model: str | None = None) -> None:
         self.model = model or os.environ.get("OPENAI_TRANSLATION_MODEL", "gpt-4.1")
+        self.last_metadata: dict[str, Any] = {}
 
     def translate(self, request: TranslationRequest) -> str:
         try:
@@ -56,6 +65,7 @@ class OpenAIProvider:
                 {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
             ],
         )
+        self.last_metadata = response_metadata(response, fallback_model=self.model)
         return response.output_text.strip()
 
 
@@ -75,6 +85,7 @@ class OpenAICompatibleChatProvider:
         self.api_key = api_key or os.environ.get(f"{env_prefix}_API_KEY", "")
         self._client = client
         self._env_prefix = env_prefix
+        self.last_metadata: dict[str, Any] = {}
 
     def translate(self, request: TranslationRequest) -> str:
         client = self._client or make_openai_client(
@@ -92,6 +103,7 @@ class OpenAICompatibleChatProvider:
                 {"role": "user", "content": json.dumps(build_prompt_payload(request), ensure_ascii=False)},
             ],
         )
+        self.last_metadata = response_metadata(response, fallback_model=self.model)
         return chat_completion_text(response)
 
 
@@ -122,6 +134,7 @@ class QwenMTProvider(OpenAICompatibleChatProvider):
             messages=[{"role": "user", "content": request.source_text}],
             extra_body={"translation_options": build_qwen_translation_options(request)},
         )
+        self.last_metadata = response_metadata(response, fallback_model=self.model)
         return chat_completion_text(response)
 
 
@@ -204,6 +217,53 @@ def chat_completion_text(response: Any) -> str:
                 text_parts.append(str(getattr(item, "text", "")))
         return "".join(text_parts).strip()
     return str(content).strip()
+
+
+def response_metadata(response: Any, *, fallback_model: str = "") -> dict[str, Any]:
+    return {
+        "response_model": str(value_at(response, "model", fallback=fallback_model) or fallback_model),
+        "response_id": str(value_at(response, "id", fallback="") or ""),
+        "usage": usage_dict(value_at(response, "usage", fallback=None)),
+    }
+
+
+def provider_metadata(provider: TranslationProvider) -> dict[str, Any]:
+    value = getattr(provider, "last_metadata", {})
+    return value if isinstance(value, dict) else {}
+
+
+def usage_dict(usage: Any) -> dict[str, Any]:
+    if usage is None:
+        return {}
+    if isinstance(usage, dict):
+        return {str(key): value for key, value in usage.items() if is_json_scalar(value)}
+    result: dict[str, Any] = {}
+    for key in [
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "prompt_tokens",
+        "completion_tokens",
+        "cached_tokens",
+    ]:
+        value = getattr(usage, key, None)
+        if value is not None:
+            result[key] = value
+    details = getattr(usage, "prompt_tokens_details", None)
+    cached = getattr(details, "cached_tokens", None) if details is not None else None
+    if cached is not None:
+        result["cached_tokens"] = cached
+    return result
+
+
+def value_at(value: Any, key: str, *, fallback: Any = None) -> Any:
+    if isinstance(value, dict):
+        return value.get(key, fallback)
+    return getattr(value, key, fallback)
+
+
+def is_json_scalar(value: Any) -> bool:
+    return value is None or isinstance(value, str | int | float | bool)
 
 
 def get_provider(name: str) -> TranslationProvider:

@@ -17,7 +17,12 @@ class FakeChatCompletions:
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="译文。"))])
+        return SimpleNamespace(
+            id="fake-response",
+            model=kwargs["model"],
+            usage=SimpleNamespace(prompt_tokens=7, completion_tokens=3, total_tokens=10),
+            choices=[SimpleNamespace(message=SimpleNamespace(content="译文。"))],
+        )
 
 
 class FakeClient:
@@ -50,6 +55,9 @@ def test_openai_compatible_chat_provider_sends_structured_prompt() -> None:
     assert call["messages"][1]["role"] == "user"
     assert "단테" in call["messages"][1]["content"]
     assert "但丁" in call["messages"][1]["content"]
+    assert provider.last_metadata["response_model"] == "custom-model"
+    assert provider.last_metadata["response_id"] == "fake-response"
+    assert provider.last_metadata["usage"]["total_tokens"] == 10
 
 
 def test_qwen_mt_provider_uses_translation_options_without_system_message() -> None:
@@ -69,6 +77,8 @@ def test_qwen_mt_provider_uses_translation_options_without_system_message() -> N
     assert options["tm_list"] == [{"source": "단테", "target": "但丁"}]
     assert "Limbus Company" in options["domains"]
     assert "但丁说道。" in options["domains"]
+    assert provider.last_metadata["response_model"] == "qwen-mt-plus"
+    assert provider.last_metadata["usage"]["prompt_tokens"] == 7
 
 
 def test_qwen_translation_options_tolerates_invalid_context() -> None:

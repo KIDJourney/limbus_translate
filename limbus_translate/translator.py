@@ -9,7 +9,7 @@ from .glossary import GlossaryTerm, match_terms
 from .json_paths import get_path, set_path
 from .lore import LoreEntry, LoreIndex
 from .memory import MemoryEntry
-from .providers import TranslationProvider, TranslationRequest
+from .providers import TranslationProvider, TranslationRequest, provider_metadata
 from .scanner import TranslationUnit, dump_json, get_data_list_match, load_json
 from .state import UnitState, is_locked, state_for_unit
 from .translation_cache import (
@@ -113,7 +113,16 @@ def translate_units(
                     translated = cached.target_text
                     translation_source = "candidate_cache"
                 else:
+                    translated = provider.translate(
+                        TranslationRequest(
+                            source_text=unit.source_text,
+                            glossary=request_glossary,
+                            context=context_json,
+                        )
+                    )
+                    translation_source = "provider"
                     if request_log is not None:
+                        metadata = provider_metadata(provider)
                         request_log.append(
                             make_request_log_entry(
                                 cache_key=cache_key,
@@ -128,16 +137,12 @@ def translate_units(
                                 source_text=unit.source_text,
                                 glossary=request_glossary,
                                 context=context_json,
+                                target_text=translated,
+                                response_model=str(metadata.get("response_model", "")),
+                                response_id=str(metadata.get("response_id", "")),
+                                usage=metadata.get("usage", {}) if isinstance(metadata.get("usage", {}), dict) else {},
                             )
                         )
-                    translated = provider.translate(
-                        TranslationRequest(
-                            source_text=unit.source_text,
-                            glossary=request_glossary,
-                            context=context_json,
-                        )
-                    )
-                    translation_source = "provider"
                     if candidate_cache_updates is not None:
                         candidate_cache_updates.append(
                             make_cache_entry(

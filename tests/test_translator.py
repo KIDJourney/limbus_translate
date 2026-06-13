@@ -10,9 +10,15 @@ from limbus_translate.translator import overlay_existing_target, translate_units
 class CountingProvider:
     def __init__(self) -> None:
         self.calls = 0
+        self.last_metadata = {}
 
     def translate(self, request) -> str:
         self.calls += 1
+        self.last_metadata = {
+            "response_model": "counting-model",
+            "response_id": "counting-response",
+            "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5},
+        }
         return "缓存译文。"
 
 
@@ -126,6 +132,10 @@ def test_translate_reuses_candidate_cache_and_records_trace() -> None:
     assert first_request_log[0].cache_key == cache_updates[0].cache_key
     assert first_request_log[0].provider == "counting"
     assert first_request_log[0].source_text == "새 문장입니다."
+    assert first_request_log[0].target_text == "缓存译文。"
+    assert first_request_log[0].response_model == "counting-model"
+    assert first_request_log[0].response_id == "counting-response"
+    assert first_request_log[0].usage["total_tokens"] == 5
     assert first_request_log[0].context
     assert first_request_log[0].glossary == []
     assert second_request_log == []

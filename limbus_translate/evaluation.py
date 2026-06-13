@@ -11,7 +11,7 @@ from typing import Any
 from .formatting import profile_text, same_multiset
 from .glossary import GlossaryTerm, match_terms
 from .json_paths import contains_cjk, contains_hangul, get_path, is_translatable_path, iter_text_nodes
-from .providers import TranslationProvider, TranslationRequest
+from .providers import TranslationProvider, TranslationRequest, provider_metadata
 from .scanner import classify_risk, load_json
 from .translation_cache import (
     TranslationCacheEntry,
@@ -379,7 +379,9 @@ def translate_eval_case(
         return cached.target_text
     relative_file = str(case.context.get("relative_file", "")) if isinstance(case.context, dict) else ""
     json_path = str(case.context.get("json_path", "")) if isinstance(case.context, dict) else ""
+    translated = provider.translate(request)
     if request_log is not None:
+        metadata = provider_metadata(provider)
         request_log.append(
             make_request_log_entry(
                 cache_key=cache_key,
@@ -394,9 +396,12 @@ def translate_eval_case(
                 source_text=case.source_text,
                 glossary=request.glossary,
                 context=request.context,
+                target_text=translated,
+                response_model=str(metadata.get("response_model", "")),
+                response_id=str(metadata.get("response_id", "")),
+                usage=metadata.get("usage", {}) if isinstance(metadata.get("usage", {}), dict) else {},
             )
         )
-    translated = provider.translate(request)
     if candidate_cache_updates is not None:
         entry = make_cache_entry(
             cache_key=cache_key,

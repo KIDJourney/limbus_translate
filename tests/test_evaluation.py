@@ -61,9 +61,15 @@ class CountingEvalProvider:
     def __init__(self, target_text: str = "缓存译文。") -> None:
         self.calls = 0
         self.target_text = target_text
+        self.last_metadata = {}
 
     def translate(self, request: TranslationRequest) -> str:
         self.calls += 1
+        self.last_metadata = {
+            "response_model": "eval-model",
+            "response_id": "eval-response",
+            "usage": {"input_tokens": 4, "output_tokens": 2, "total_tokens": 6},
+        }
         return self.target_text
 
 
@@ -165,6 +171,10 @@ def test_gold_evaluation_reuses_candidate_cache_and_logs_requests() -> None:
     assert len(request_log) == 1
     assert request_log[0].provider == "qwen-mt:qwen-mt-plus"
     assert request_log[0].unit_id == "story-1"
+    assert request_log[0].target_text == "缓存译文。"
+    assert request_log[0].response_model == "eval-model"
+    assert request_log[0].response_id == "eval-response"
+    assert request_log[0].usage["total_tokens"] == 6
     assert "gold_context" in request_log[0].context
     assert second_log == []
 
