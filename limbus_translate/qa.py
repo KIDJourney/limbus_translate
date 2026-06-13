@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -27,6 +29,7 @@ MQM_CATEGORY_BY_CODE = {
     "length_ratio_high": "design",
     "length_ratio_low": "design",
     "line_too_long": "design",
+    "line_display_too_wide": "design",
 }
 
 
@@ -47,6 +50,7 @@ def mqm_category(code: str) -> str:
 @dataclass(frozen=True)
 class LengthPolicy:
     max_line_length: int = 80
+    max_display_width: int | None = None
     max_ratio: float = 2.2
     min_ratio: float = 0.25
     min_source_length: int = 10
@@ -115,6 +119,11 @@ def _policy_from_raw(raw: dict[str, Any], *, base: LengthPolicy | None = None) -
     base = base or LengthPolicy()
     return LengthPolicy(
         max_line_length=int(raw.get("max_line_length", base.max_line_length)),
+        max_display_width=(
+            int(raw["max_display_width"])
+            if "max_display_width" in raw and raw.get("max_display_width") is not None
+            else base.max_display_width
+        ),
         max_ratio=float(raw.get("max_ratio", base.max_ratio)),
         min_ratio=float(raw.get("min_ratio", base.min_ratio)),
         min_source_length=int(raw.get("min_source_length", base.min_source_length)),
@@ -162,11 +171,29 @@ def check_pair(
     longest_line = max((len(line) for line in translated_text.splitlines()), default=len(translated_text))
     if longest_line > policy.max_line_length:
         issue("warning", "line_too_long", f"最长行 {longest_line} 字，超过策略上限 {policy.max_line_length}")
+    if policy.max_display_width is not None:
+        widest_line = max((display_width(line) for line in translated_text.splitlines()), default=display_width(translated_text))
+        if widest_line > policy.max_display_width:
+            issue(
+                "warning",
+                "line_display_too_wide",
+                f"最长显示宽度 {widest_line}，超过策略上限 {policy.max_display_width}",
+            )
 
     for term in match_terms(unit.source_text, glossary):
         if term.target and term.target not in translated_text:
             issue("warning", "term_miss", f"术语未命中: {term.source} => {term.target}")
     return issues
+
+
+def display_width(text: str) -> int:
+    visible = re.sub(r"</?[^>\n]+>", "", text)
+    width = 0
+    for char in visible:
+        if unicodedata.combining(char):
+            continue
+        width += 2 if unicodedata.east_asian_width(char) in {"F", "W"} else 1
+    return width
 
 
 def qa_output(

@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from limbus_translate.qa import check_pair, read_length_policy, summarize_issues
+from limbus_translate.qa import check_pair, display_width, read_length_policy, summarize_issues
 from limbus_translate.scanner import TranslationUnit
 
 
@@ -102,3 +102,31 @@ def test_qa_uses_path_specific_length_policy() -> None:
     line_issue = next(issue for issue in issues if issue.code == "line_too_long")
     assert line_issue.category == "design"
     assert "策略上限 12" in line_issue.message
+
+
+def test_qa_uses_display_width_policy() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "length-policy.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "default": {
+                        "max_line_length": 80,
+                        "max_display_width": 10,
+                        "max_ratio": 10,
+                        "min_ratio": 0.01,
+                        "min_source_length": 1,
+                    }
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        policy = read_length_policy(path)
+
+    unit = make_unit("전투 시작")
+    issues = check_pair(unit, "<color=#fff>战斗开始了呀</color>", [], length_policy=policy)
+    display_issue = next(issue for issue in issues if issue.code == "line_display_too_wide")
+    assert display_issue.category == "design"
+    assert "显示宽度 12" in display_issue.message
+    assert display_width("<color=#fff>{0}战斗</color>") == 7

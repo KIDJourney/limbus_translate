@@ -16,5 +16,5 @@
 | RefinedTerm | 术语候选二次提炼结果，包含 `term` / `not_term` / `needs_review` 决策和可选建议译名 |
 | Promoted glossary | 从 `RefinedTerm` 导出的本地 glossary cache；只包含已确认且有译名的 `term` |
 | MQM | Multidimensional Quality Metrics，本地化质量评估框架；本项目 QA 使用 MQM 风格 category 做粗粒度归类 |
-| LengthPolicy | QA 使用的字符级长度策略，可按路径、文件前缀、JSON path 后缀或 risk 覆盖阈值；不是像素级 UI 测量 |
+| LengthPolicy | QA 使用的长度策略，可按路径、文件前缀、JSON path 后缀或 risk 覆盖字符阈值和 East Asian Width 估算显示宽度；不是像素级 UI 测量 |
 | `dry-run` provider | 不调用外部模型，只输出 `[待译] 源文`，用于验证扫描和写回链路 |

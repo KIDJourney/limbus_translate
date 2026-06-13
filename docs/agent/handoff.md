@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — QA 估算显示宽度策略
+
+### 已完成
+
+- `LengthPolicy` 新增 `max_display_width`，QA 会按 East Asian Width 估算可见文本宽度，并忽略富文本标签。
+- 新增 `line_display_too_wide` MQM design 类 issue，和既有字符级 `line_too_long` 并行。
+- `config/length-policy.sample.json` 增加默认、剧情正文和短名称的显示宽度阈值。
+- `make test` 直接入口覆盖 display width 策略测试。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试包含 `test_qa_uses_display_width_policy`。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，fixture QA 可读取 `config/length-policy.sample.json`。
+- 真实 Localize checkout 小样本：扫描 19 条 `target_same_as_source`，TM 构建 92337 条，dry-run translate limit 3 通过，QA 生成 19 条 accuracy issue。
+
+### 风险
+
+- 当前显示宽度是 East Asian Width 估算，不是按游戏字体、字号和 UI 容器做像素测量；真实样本本轮未触发 `line_display_too_wide`，但 fixture 已覆盖触发路径。
+
 ## 2026-06-13 — Limbus Translate 初版工具骨架
 
 ### 已完成
@@ -47,7 +69,7 @@
 ### 风险
 
 - 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
-- 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体、路径/risk 字符级 length policy 和 MQM 风格分类，但还没有像素级 UI 长度。
+- 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体、路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类，但还没有像素级 UI 容器测量。
 - 当前 lore cache 已支持 anchors、术语和轻量 TF-IDF n-gram 相似召回，但还不是 embedding 向量库；真实世界观资料仍需整理为本地笔记或外部知识源导入。
 - 当前可从真实 reference tree 自动抽取 1000 条 gold set，但还没有人工精选、分层采样后的模型赛马基准。
 - 当前术语候选提取和 rules refiner 只是自动粗筛；OpenAI provider 也只能给建议译名，正式术语仍需人工确认后通过 `terms promote` 进入 termbase。
@@ -55,7 +77,7 @@
 
 ### 下一步
 
-- 补像素级 UI 长度检查和具体 UI 容器策略。
+- 补像素级 UI 容器测量和具体容器策略。
 - 把本地 promoted glossary 与 Paratranz 或审校系统的正式 termbase 同步，并把 lore cache 升级为 embedding 向量库和经过 gold set 调参的相似句检索。
 - 用 `eval build-gold --limit 1000` 生成真实候选 gold set，人工分层抽查后用 `eval run --provider openai --fail-under ...` 做模型赛马和 prompt 回归。
 

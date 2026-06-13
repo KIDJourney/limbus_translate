@@ -87,7 +87,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `terms promote` 只导出 `decision=term` 且存在 `suggested_target` 的记录；`needs_review` 不会进入正式术语缓存。
 
-`qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值。当前示例是字符级策略，不替代真实 UI 像素测量。
+`qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值，并可用 `max_display_width` 按 East Asian Width 估算可见文本宽度。估算会忽略富文本标签，但不替代真实 UI 像素测量。
 
 `lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；翻译上下文召回同时使用 anchors、术语和轻量 TF-IDF 字符 n-gram 相似度。当前仍不是 embedding 或外部向量库检索。
 
