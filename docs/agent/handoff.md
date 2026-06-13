@@ -2,6 +2,27 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Changed-files 增量扫描
+
+### 已完成
+
+- `scan` 新增 `--changed-files` 参数，可读取 `git diff --name-only` 生成的换行文件清单。
+- 新增 `read_changed_files` / `normalize_changed_file`，支持 `KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 归一化为同一相对路径，并忽略非 JSON 文件。
+- `scan_missing` 新增 `include_files` 过滤，只扫描本次变更涉及的 JSON 文件。
+- `make smoke` 已用 `build/changed-files.txt` 走增量扫描路径。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖只扫描变更文件、仓库路径归一化和非 JSON 跳过。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `make smoke`：通过，fixture changed-files 清单包含 `KR/Sample.json` 和 `README.md`，扫描仍输出 2 条待译单元。
+- `git diff --check`：通过。
+- 真实 Localize checkout：全量扫描 19 条；changed-files 指向 `KR/StoryData/3D102A.json` 时只输出该文件 1 条，unit_id 与全量扫描子集一致。
+
+### 风险
+
+- 当前按文件过滤，不按 commit diff 中具体 JSON path 过滤；同一 JSON 文件内仍需要 scan policy、QA 和人工审查兜底。
+
 ## 2026-06-13 — Lore 离线向量索引
 
 ### 已完成

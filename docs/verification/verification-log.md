@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-13 | Changed-files 增量扫描 | 新增 `scan --changed-files`、变更清单归一化和 `include_files` 扫描过滤，支持用 `git diff --name-only` 收敛本次更新范围 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`git diff --check`；真实 Localize checkout 全量扫描 vs 指定单文件 changed-files 扫描 | 通过；直接测试覆盖只扫描变更文件、`KR/` / `LLC_zh-CN/` 路径归一化和非 JSON 跳过；fixture smoke 使用 `build/changed-files.txt` 仍生成 2 条；真实 checkout 全量 19 条，changed-files 指向 `KR/StoryData/3D102A.json` 时只输出该文件 1 条，unit_id 与全量子集一致 |
 | 2026-06-13 | Lore 离线向量索引 | 新增 `lore index`、`lore search`、`translate --lore-index` 和 `LoreIndex` hashed-vector cache，让世界观资料可预编译、可单独搜索、可注入 provider context | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make smoke`；docs lore `import/index/search`；真实 Localize checkout scan/TM/translate limit 2 with lore index | 通过；直接测试覆盖 index roundtrip/search，context 测试通过 `build_lore_index` 注入 lore；fixture smoke 生成 `build/lore-index.json` 和 `build/lore-search.json`，并用 `--lore-index` 翻译；docs lore 2 条 index/search 通过；真实扫描 19 条、TM 92337 条、带 lore index dry-run translate 2 条通过 |
 | 2026-06-13 | Scan policy 数据 adapter | 新增 `--scan-policy`、`ScanPolicy` include/exclude 规则和 `config/scan-policy.sample.json`，用于按文件/path/key/source 内容配置扫描范围 | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make validate-docs`；`make smoke`；真实 Localize checkout 默认扫描 vs `--scan-policy config/scan-policy.sample.json` 对比 | 通过；直接测试覆盖非默认文本路径 include、噪声路径 exclude 和 risk 覆盖；fixture smoke 使用 sample policy 仍生成 2 条待译单元；真实 checkout 默认扫描和 sample policy 扫描均为 19 条 `target_same_as_source`，unit_id 顺序一致 |
 | 2026-06-13 | Gold set 人工审校回写 | 新增 `eval review-pack` 和 `eval apply-review`，把分层样本导出为人工审校 CSV/JSONL，并只将明确确认的行写回 curated gold set | `make test`；`python3 -m compileall -q limbus_translate`；`git diff --check`；`make validate-docs`；`make smoke`；真实 Localize checkout `eval build-gold --limit 50` + `eval sample-gold --per-group 3` + `eval review-pack` + `eval apply-review` | 通过；直接测试覆盖 review pack 字段、JSONL 完整结构、approved 判定、修订 expected_text、保留 glossary/context/tags；fixture smoke 生成 `build/gold-review/review.csv`、`build/gold-review/review.jsonl` 和 1 条 `build/gold-curated.json`；真实 gold set 50 条，分层采样 9 条，review pack 9 条，模拟确认 1 条后 curated gold 保留 context/tags |
@@ -22,12 +23,13 @@
 
 ## 当前风险
 
-1. Scan policy 已提供文件/path/key/source 内容级 include/exclude 配置，但 sample 规则仍只是初始规则库；新增文件类型仍需用真实 diff 和人工抽查校准。
-2. 缺失 `dataList` record 可以 append 源 record 并替换已处理字段，但同一 record 中未进入当前 units 的其他韩文字段仍可能需要后续扫描/QA 复审。
-3. QA 尚未覆盖按具体 UI 容器的像素级长度限制；当前已有路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类。
-4. lore cache 已支持 anchors、术语、轻量 TF-IDF n-gram 和离线 hashed-vector 索引召回；尚未接入外部 embedding 服务或专用向量数据库，也未经过 gold set 调参。
-5. Gold set 可从真实 reference tree 自动抽取、分层采样、导出审校包并回写 curated gold；正式模型赛马仍取决于人工审校覆盖范围，且尚未执行真实 OpenAI 多模型评估。
-6. 术语候选提取和 rules 二次提炼仍是粗筛；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
+1. Changed-files 增量扫描只过滤文件范围，不判断文件内具体字段是否在本次 commit 中变化；同一 JSON 文件内仍需要 scan policy、QA 和人工审查兜底。
+2. Scan policy 已提供文件/path/key/source 内容级 include/exclude 配置，但 sample 规则仍只是初始规则库；新增文件类型仍需用真实 diff 和人工抽查校准。
+3. 缺失 `dataList` record 可以 append 源 record 并替换已处理字段，但同一 record 中未进入当前 units 的其他韩文字段仍可能需要后续扫描/QA 复审。
+4. QA 尚未覆盖按具体 UI 容器的像素级长度限制；当前已有路径/risk 字符级 length policy、估算显示宽度和 MQM 风格分类。
+5. lore cache 已支持 anchors、术语、轻量 TF-IDF n-gram 和离线 hashed-vector 索引召回；尚未接入外部 embedding 服务或专用向量数据库，也未经过 gold set 调参。
+6. Gold set 可从真实 reference tree 自动抽取、分层采样、导出审校包并回写 curated gold；正式模型赛马仍取决于人工审校覆盖范围，且尚未执行真实 OpenAI 多模型评估。
+7. 术语候选提取和 rules 二次提炼仍是粗筛；review pack / apply-review 只处理本地审校材料和本地 cache，正式术语仍需要人工确认，OpenAI term refiner 还没有真实 API 验证记录。
 
 ## 未覆盖项
 

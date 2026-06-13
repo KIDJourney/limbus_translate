@@ -77,6 +77,21 @@ scan complete: 19 units -> /tmp/limbus-real-missing-v4.json
 
 `config/scan-policy.sample.json` 当前把这些文件类型经验沉淀为可配置规则：保留 `StoryData/*.content` 为高风险可见文本，排除常见无用 `desc`、内部 `name` 和战斗气泡元数据。2026-06-13 抽样验证中，默认扫描与 sample policy 扫描均输出 19 条且 `unit_id` 顺序一致，说明 sample policy 暂未扩大当前真实缺译集。
 
+增量扫描可用 `git diff --name-only` 文件清单收敛范围：
+
+```bash
+git -C /tmp/limbus-translate-work/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > /tmp/limbus-changed-files.txt
+
+python3 -m limbus_translate.cli scan \
+  --source /tmp/limbus-translate-work/LocalizeLimbusCompany/KR \
+  --target /tmp/limbus-translate-work/LocalizeLimbusCompany/LLC_zh-CN \
+  --output /tmp/limbus-changed-missing.json \
+  --scan-policy config/scan-policy.sample.json \
+  --changed-files /tmp/limbus-changed-files.txt
+```
+
+2026-06-13 验证中，changed-files 指向 `KR/StoryData/3D102A.json` 时只输出该文件 1 条待译单元，且 `unit_id` 与全量 19 条扫描的对应子集一致。
+
 ## Paratranz 术语源
 
 - 项目页：https://paratranz.cn/projects/6860/terms

@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import tempfile
 
-from limbus_translate.scanner import ScanPolicy, ScanPolicyRule, scan_missing
+from limbus_translate.scanner import ScanPolicy, ScanPolicyRule, normalize_changed_file, read_changed_files, scan_missing
 
 
 def test_scan_missing_detects_korean_target_and_blank_target() -> None:
@@ -146,3 +146,61 @@ def test_scan_policy_excludes_noise_path() -> None:
         )
     assert len(default_units) == 1
     assert policy_units == []
+
+
+def test_scan_can_limit_to_changed_files() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "KR"
+        target = root / "LLC_zh-CN"
+        source.mkdir()
+        target.mkdir()
+        (source / "Changed.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": "바뀐 문장입니다."}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (target / "Changed.json").write_text(
+            json.dumps({"dataList": [{"id": 1, "desc": ""}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (source / "Unchanged.json").write_text(
+            json.dumps({"dataList": [{"id": 2, "desc": "다른 문장입니다."}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (target / "Unchanged.json").write_text(
+            json.dumps({"dataList": [{"id": 2, "desc": ""}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        all_units = scan_missing(source, target)
+        changed_units = scan_missing(source, target, include_files={"Changed.json"})
+
+    assert {unit.relative_file for unit in all_units} == {"Changed.json", "Unchanged.json"}
+    assert [unit.relative_file for unit in changed_units] == ["Changed.json"]
+
+
+def test_read_changed_files_normalizes_repo_paths() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "KR"
+        target = root / "LLC_zh-CN"
+        source.mkdir()
+        target.mkdir()
+        changed = root / "changed.txt"
+        changed.write_text(
+            "\n".join(
+                [
+                    "KR/StoryData/Sample.json",
+                    "LLC_zh-CN/Battle.json",
+                    "README.md",
+                    "# comment",
+                    "Plain.json",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        files = read_changed_files(changed, source_root=source, target_root=target)
+
+    assert files == {"StoryData/Sample.json", "Battle.json", "Plain.json"}
+    assert normalize_changed_file("KR/Foo.json", source_root=source, target_root=target) == "Foo.json"
+    assert normalize_changed_file("docs/readme.md", source_root=source, target_root=target) == ""

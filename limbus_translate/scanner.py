@@ -102,6 +102,32 @@ def read_scan_policy(path: Path) -> ScanPolicy:
     return ScanPolicy(rules=rules)
 
 
+def read_changed_files(path: Path, *, source_root: Path, target_root: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    relative_files: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        normalized = normalize_changed_file(value, source_root=source_root, target_root=target_root)
+        if normalized:
+            relative_files.add(normalized)
+    return relative_files
+
+
+def normalize_changed_file(value: str, *, source_root: Path, target_root: Path) -> str:
+    path = value.strip().replace("\\", "/")
+    if not path or not path.endswith(".json"):
+        return ""
+    prefixes = [source_root.name, target_root.name, "KR", "LLC_zh-CN"]
+    for prefix in prefixes:
+        marker = f"{prefix}/"
+        if path.startswith(marker):
+            return path[len(marker) :]
+    return path.lstrip("/")
+
+
 def scan_policy_rule_matches(
     rule: ScanPolicyRule,
     relative_file: str,
@@ -250,11 +276,14 @@ def scan_missing(
     *,
     include_internal: bool = False,
     scan_policy: ScanPolicy | None = None,
+    include_files: set[str] | None = None,
 ) -> list[TranslationUnit]:
     units: list[TranslationUnit] = []
     policy = scan_policy or DEFAULT_SCAN_POLICY
     for source_file in sorted(source_root.rglob("*.json")):
         relative = source_file.relative_to(source_root).as_posix()
+        if include_files is not None and relative not in include_files:
+            continue
         target_file = target_root / relative
         source_data = load_json(source_file)
         target_data = load_json(target_file) if target_file.exists() else None

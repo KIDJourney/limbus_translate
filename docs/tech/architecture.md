@@ -29,7 +29,7 @@ LocalizeLimbusCompany checkout
 | 路径 | 职责 |
 |---|---|
 | `limbus_translate/json_paths.py` | JSON 文本节点遍历、可翻译路径判断、路径读写 |
-| `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy 按文件/path/key include 或 exclude |
+| `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy 和 changed-files 增量扫描 |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，构建离线 hashed-vector 索引，并按 anchors、术语、TF-IDF 字符 n-gram 或索引相似度召回 lore 片段 |
 | `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
@@ -46,7 +46,7 @@ LocalizeLimbusCompany checkout
 
 ## 数据流
 
-1. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
+1. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，也可读取 `--changed-files` 把范围收敛到本次 git diff 涉及的 JSON 文件；输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语。
 3. `lore import` 把世界观笔记导成 `cache/lore/world.json`；`lore index` 进一步构建 `cache/lore/world-index.json`，供翻译时按源文、术语、anchors 和离线向量相似度召回。
 4. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。

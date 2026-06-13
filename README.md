@@ -28,14 +28,19 @@ make sync-glossary
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 
 ```bash
+git -C /path/to/LocalizeLimbusCompany diff --name-only HEAD~1 HEAD > build/changed-files.txt
+
 python3 -m limbus_translate.cli scan \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --output build/missing-units.json \
-  --scan-policy config/scan-policy.sample.json
+  --scan-policy config/scan-policy.sample.json \
+  --changed-files build/changed-files.txt
 ```
 
 `--scan-policy` 接受 JSON 规则文件，支持按 `relative_file`、`relative_file_prefix`、`json_path`、`json_path_suffix`、`key` 和 `source_contains` 做 `include` / `exclude`。这用于把特定文件里的可见文本路径纳入扫描，也用于过滤内部事件名、显示占位和无用文本等噪声；不传该参数时仍使用内置默认规则。
+
+`--changed-files` 接受 `git diff --name-only` 这类换行分隔清单，只扫描清单中涉及的 JSON 相对文件；`KR/Foo.json`、`LLC_zh-CN/Foo.json` 和 `Foo.json` 都会归一化为同一个相对路径，非 JSON 行会被忽略。不传该参数时执行全量扫描。
 
 生成候选译文：
 
