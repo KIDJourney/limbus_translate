@@ -46,6 +46,14 @@ make publish-current-localize-artifact
 
 当前真实批次产物位于 `artifacts/localize-9184302e/`，包含可应用到 LocalizeLimbusCompany `9184302e785805924807919587cd5264186b19eb` 的 `localize-translation.patch`、22 条翻译明细 `translations.json` 和验证摘要 `summary.json`。该 patch 是 gap-only：保留 GitHub `LLC_zh-CN` 现有中文，只替换 22 个目标仍为韩文的缺口。
 
+模型赛马前先准备一份来自 GitHub 现有中文译文的金标审校包：
+
+```bash
+make prepare-current-model-eval
+```
+
+该命令不会调用翻译 provider，只会从当前 LocalizeLimbusCompany `KR` / `LLC_zh-CN` 中构建 gold set、分层抽样，并导出 `build/current-model-eval/gold-review/review.csv` 供人工确认；确认后再用 `eval compare` 比较 qwen / openai 等 provider。
+
 对真实 LocalizeLimbusCompany checkout 运行扫描：
 
 ```bash

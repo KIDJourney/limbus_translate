@@ -239,6 +239,8 @@ python3 -m limbus_translate.cli terms promote \
 
 `make check-provider-env` 会检查真实 provider 运行前提，不调用外部 API，也不会输出密钥内容。`PROVIDER=qwen-mt` 需要安装 `openai` Python package，并设置 `DASHSCOPE_API_KEY` 或 `QWEN_API_KEY`；`PROVIDER=openai` 需要 `OPENAI_API_KEY`。预检通过后，可用 `PROVIDER=qwen-mt make prepare-current-localize-review` 生成真实模型候选审校包。
 
+`make prepare-current-model-eval` 会 checkout 当前 LocalizeLimbusCompany、同步 Paratranz 术语，并从 GitHub `LLC_zh-CN` 现有中文译文构建 provider eval 的 gold set。它默认最多收集 `GOLD_LIMIT=1000` 条参考译文，按 `GOLD_GROUP_BY=tag` 每组抽 `GOLD_PER_GROUP=20` 条，输出 `build/current-model-eval/gold-set.json`、`gold-sample.json` 和 `gold-review/review.csv`。该命令不调用翻译 provider；审校者确认 `review.csv` 后，用 `eval apply-review` 生成 curated gold，再用 `eval compare` 做 qwen / openai 模型赛马。
+
 `translate --candidate-cache` 会读取并更新 provider 候选缓存。缓存 key 绑定 provider、source hash、context hash 和 glossary hash，所以术语或 lore 上下文变化后不会误复用旧译文。`translate --request-log` 输出真正发给 provider 的 source、glossary、context、`target_text`、`response_model`、`response_id` 和 `usage`；state、TM 和 candidate cache 命中不会写入 request log。`translate --trace` 输出 JSONL，每行记录 `translation_source`，用于区分 state、TM、candidate cache 和 provider。
 
 `review pack` 会把待译单元、当前候选输出和 QA issue 汇总成 `review.csv` / `review.jsonl`。审校者只需要填写 `approved`，必要时填写 `revised_target`；`review apply` 只接收明确 approved 且有译文的行，写成 `reviewed` / `locked` state，后续 `translate --state` 或 `workflow run --state` 会优先使用并保护这些译文。
