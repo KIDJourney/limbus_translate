@@ -7,6 +7,7 @@ from typing import Any
 from .context import build_translation_context
 from .glossary import GlossaryTerm, match_terms
 from .json_paths import get_path, set_path
+from .lore import LoreEntry
 from .memory import MemoryEntry
 from .providers import TranslationProvider, TranslationRequest
 from .scanner import TranslationUnit, dump_json, get_data_list_match, load_json
@@ -40,6 +41,7 @@ def translate_units(
     glossary: list[GlossaryTerm],
     provider: TranslationProvider,
     memory: dict[str, MemoryEntry] | None = None,
+    lore_entries: list[LoreEntry] | None = None,
     states: dict[str, UnitState] | None = None,
     limit: int | None = None,
 ) -> int:
@@ -73,6 +75,7 @@ def translate_units(
                     target_data=changed_files[unit.relative_file],
                     matched_terms=matched,
                     memory=memory or {},
+                    lore_entries=lore_entries or [],
                 )
                 translated = provider.translate(
                     TranslationRequest(

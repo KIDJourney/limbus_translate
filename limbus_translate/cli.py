@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
+from .lore import import_lore, read_lore_cache, write_lore_cache
 from .memory import build_memory, read_memory, write_memory
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
@@ -56,6 +57,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
     parsed_units = [TranslationUnit(**row) for row in json.loads(units_path.read_text(encoding="utf-8"))]
     glossary = read_cache(Path(args.glossary)) if args.glossary else []
     memory = read_memory(Path(args.memory)) if args.memory else {}
+    lore_entries = read_lore_cache(Path(args.lore)) if args.lore else []
     states = read_state(Path(args.state)) if args.state else {}
     overlay_existing_target(source, target, output)
     count = translate_units(
@@ -66,6 +68,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
         glossary=glossary,
         provider=get_provider(args.provider),
         memory=memory,
+        lore_entries=lore_entries,
         states=states,
         limit=args.limit,
     )
@@ -77,6 +80,13 @@ def cmd_tm_build(args: argparse.Namespace) -> int:
     entries = build_memory(Path(args.source), Path(args.target))
     write_memory(Path(args.output), entries)
     print(f"tm build complete: {len(entries)} entries -> {args.output}")
+    return 0
+
+
+def cmd_lore_import(args: argparse.Namespace) -> int:
+    entries = import_lore(Path(args.input))
+    write_lore_cache(Path(args.output), entries)
+    print(f"lore import complete: {len(entries)} entries -> {args.output}")
     return 0
 
 
@@ -173,6 +183,7 @@ def build_parser() -> argparse.ArgumentParser:
     translate.add_argument("--units", default="build/missing-units.json")
     translate.add_argument("--glossary", default="")
     translate.add_argument("--memory", default="")
+    translate.add_argument("--lore", default="")
     translate.add_argument("--state", default="")
     translate.add_argument("--output", default="build/LLC_zh-CN")
     translate.add_argument("--provider", choices=["dry-run", "openai"], default="dry-run")
@@ -186,6 +197,13 @@ def build_parser() -> argparse.ArgumentParser:
     tm_build.add_argument("--target", required=True)
     tm_build.add_argument("--output", default="cache/tm/exact.json")
     tm_build.set_defaults(func=cmd_tm_build)
+
+    lore = sub.add_parser("lore", help="Import worldbuilding notes for translation context.")
+    lore_sub = lore.add_subparsers(required=True)
+    lore_import = lore_sub.add_parser("import")
+    lore_import.add_argument("--input", required=True, help="Markdown, JSON, JSONL, CSV, TXT, or a directory.")
+    lore_import.add_argument("--output", default="cache/lore/world.json")
+    lore_import.set_defaults(func=cmd_lore_import)
 
     qa = sub.add_parser("qa", help="Check translated output against source units.")
     qa.add_argument("--units", default="build/missing-units.json")

@@ -7,6 +7,7 @@ from typing import Any
 
 from .glossary import GlossaryTerm
 from .json_paths import contains_hangul, get_path, is_translatable_path, iter_text_nodes
+from .lore import LoreEntry, LoreMatch, match_lore
 from .memory import MemoryEntry
 from .scanner import TranslationUnit
 
@@ -29,6 +30,16 @@ class ContextSnippet:
 
 
 @dataclass(frozen=True)
+class ContextLore:
+    title: str
+    text: str
+    tags: list[str]
+    source: str
+    anchors: list[str]
+    score: float = 0.0
+
+
+@dataclass(frozen=True)
 class TranslationContextBundle:
     relative_file: str
     json_path: str
@@ -38,6 +49,7 @@ class TranslationContextBundle:
     terms: list[ContextTerm]
     neighbors: list[ContextSnippet]
     memory_examples: list[ContextSnippet]
+    lore: list[ContextLore]
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, sort_keys=True)
@@ -50,9 +62,12 @@ def build_translation_context(
     target_data: Any,
     matched_terms: list[GlossaryTerm],
     memory: dict[str, MemoryEntry],
+    lore_entries: list[LoreEntry] | None = None,
     neighbor_window: int = 2,
     max_memory_examples: int = 5,
+    max_lore_entries: int = 5,
 ) -> TranslationContextBundle:
+    lore_matches = match_lore(unit.source_text, lore_entries or [], terms=matched_terms, limit=max_lore_entries)
     return TranslationContextBundle(
         relative_file=unit.relative_file,
         json_path=unit.json_path,
@@ -62,7 +77,22 @@ def build_translation_context(
         terms=[ContextTerm(term.source, term.target, term.note) for term in matched_terms],
         neighbors=neighbor_snippets(unit, source_data, target_data, window=neighbor_window),
         memory_examples=memory_snippets(unit, memory, limit=max_memory_examples),
+        lore=lore_context(lore_matches),
     )
+
+
+def lore_context(matches: list[LoreMatch]) -> list[ContextLore]:
+    return [
+        ContextLore(
+            title=match.title,
+            text=match.text,
+            tags=match.tags,
+            source=match.source,
+            anchors=match.anchors,
+            score=match.score,
+        )
+        for match in matches
+    ]
 
 
 def neighbor_snippets(

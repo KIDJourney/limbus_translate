@@ -33,12 +33,17 @@ python3 -m limbus_translate.cli state init \
   --units build/missing-units.json \
   --output cache/state/units.json
 
+python3 -m limbus_translate.cli lore import \
+  --input docs/lore \
+  --output cache/lore/world.json
+
 python3 -m limbus_translate.cli translate \
   --source /path/to/LocalizeLimbusCompany/KR \
   --target /path/to/LocalizeLimbusCompany/LLC_zh-CN \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
   --memory cache/tm/exact.json \
+  --lore cache/lore/world.json \
   --state cache/state/units.json \
   --output build/LLC_zh-CN \
   --provider dry-run
@@ -71,6 +76,8 @@ python3 -m limbus_translate.cli terms promote \
 `terms promote` 只导出 `decision=term` 且存在 `suggested_target` 的记录；`needs_review` 不会进入正式术语缓存。
 
 `qa --length-policy` 接受 JSON 策略文件，按路径、文件前缀、JSON path 后缀或 risk 覆盖字符级长度阈值。当前示例是字符级策略，不替代真实 UI 像素测量。
+
+`lore import` 接受 Markdown、JSON、JSONL、CSV、TXT 或目录输入，输出统一 `LoreEntry[]` cache。Markdown 会按一级到三级标题切分条目，并从 `关键词:` / `anchors:` 等行提取召回锚点；当前是关键词召回，不是向量检索。
 
 ## 文档验证
 

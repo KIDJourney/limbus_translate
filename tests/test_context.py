@@ -4,6 +4,7 @@ from pathlib import Path
 
 from limbus_translate.formatting import text_hash
 from limbus_translate.glossary import GlossaryTerm
+from limbus_translate.lore import LoreEntry
 from limbus_translate.memory import MemoryEntry
 from limbus_translate.providers import TranslationRequest
 from limbus_translate.scanner import scan_missing
@@ -90,6 +91,16 @@ def test_translate_provider_receives_structured_context() -> None:
                 json_path="dataList.0.summary",
             )
         }
+        lore = [
+            LoreEntry(
+                title="전투",
+                text="전투는 죄수들이 환상체와 맞서는 핵심 진행 단위다.",
+                tags=["system"],
+                source="fixture",
+                anchors=["전투"],
+                raw={},
+            )
+        ]
 
         overlay_existing_target(source, target, output)
         count = translate_units(
@@ -100,6 +111,7 @@ def test_translate_provider_receives_structured_context() -> None:
             glossary=[make_term("전투", "战斗")],
             provider=provider,
             memory=memory,
+            lore_entries=lore,
         )
 
     assert count == 1
@@ -112,6 +124,7 @@ def test_translate_provider_receives_structured_context() -> None:
     assert any(item["target_text"] == "但丁" for item in context["neighbors"])
     assert any(item["target_text"] == "确认了战斗记录。" for item in context["neighbors"])
     assert context["memory_examples"][0]["source_text"] == "전투 기록을 확인했다."
+    assert context["lore"][0]["title"] == "전투"
 
 
 def test_context_includes_cross_file_similar_memory() -> None:
