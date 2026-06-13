@@ -11,7 +11,7 @@ from .providers import get_provider
 from .qa import qa_output, write_issues
 from .scanner import TranslationUnit, scan_missing, write_units
 from .state import UnitState, read_state, write_state
-from .terms import extract_term_candidates, write_candidates
+from .terms import extract_term_candidates, get_term_refiner, read_candidates, write_candidates, write_refined_terms
 from .translator import overlay_existing_target, translate_units
 
 
@@ -96,6 +96,18 @@ def cmd_terms_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_terms_refine(args: argparse.Namespace) -> int:
+    candidates = read_candidates(Path(args.candidates))
+    refined = get_term_refiner(args.provider).refine(candidates)
+    write_refined_terms(Path(args.output), refined)
+    by_decision: dict[str, int] = {}
+    for term in refined:
+        by_decision[term.decision] = by_decision.get(term.decision, 0) + 1
+    print(f"terms refine complete: {len(refined)} candidates -> {args.output}")
+    print(json.dumps(by_decision, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def cmd_state_init(args: argparse.Namespace) -> int:
     rows = json.loads(Path(args.units).read_text(encoding="utf-8"))
     units = [TranslationUnit(**row) for row in rows]
@@ -174,6 +186,11 @@ def build_parser() -> argparse.ArgumentParser:
     terms_extract.add_argument("--output", default="cache/terms/candidates.json")
     terms_extract.add_argument("--min-count", type=int, default=1)
     terms_extract.set_defaults(func=cmd_terms_extract)
+    terms_refine = terms_sub.add_parser("refine")
+    terms_refine.add_argument("--candidates", default="cache/terms/candidates.json")
+    terms_refine.add_argument("--output", default="cache/terms/refined.json")
+    terms_refine.add_argument("--provider", choices=["rules", "openai"], default="rules")
+    terms_refine.set_defaults(func=cmd_terms_refine)
 
     state = sub.add_parser("state", help="Create or manage unit review state.")
     state_sub = state.add_subparsers(required=True)

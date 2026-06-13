@@ -16,6 +16,7 @@
   - `qa`：检查韩文残留、占位符、标签、数字、换行和术语命中。
   - `tm build`：构建 exact-match 翻译记忆。
   - `terms extract`：从新增文本提取候选术语/短语缓存。
+  - `terms refine`：用 `rules` / `openai` provider 将候选分为 `term` / `not_term` / `needs_review`，写入 refined cache。
   - `state init`：初始化 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元。
 - 新增测试夹具和直接单元测试入口。
 - 新增调研文档：[translation-framework.md](../research/translation-framework.md) 与 [localize-data-study.md](../tech/localize-data-study.md)。
@@ -29,6 +30,7 @@
 - 真实 Localize checkout 扫描：通过；默认输出 19 条 `target_same_as_source`，全部为 `StoryData/*.content` 高风险文本；`--include-internal` 可审计 263 条完整同源残留。
 - 真实 Localize TM 构建：通过，输出 92337 条 exact-match 记忆。
 - 真实新增文本术语候选提取：通过，输出 19 条候选；heuristic 会包含短语/整句，需 LLM 或人工二筛。
+- `terms refine --provider rules`：fixture smoke 通过，输出 3 条 refined 记录，决策分布为 `needs_review=1`、`not_term=2`；真实 Localize 候选 19 条 refine 通过，输出 `needs_review=10`、`not_term=9`。
 - 缺失 `dataList` record 写回：fixture 测试通过，`translate` 会 append 源 record 并替换待译字段。
 - `reviewed` / `locked` 状态：fixture 测试通过，锁定单元不会被 `translate` 覆盖。
 - QA 简繁和长度风险：fixture 测试通过。
@@ -38,14 +40,14 @@
 
 - 当前扫描支持唯一、非 `-1` 的 `dataList[*].id` 主键对齐；重复 id 或 `id=-1` 会回退 JSON path，避免 StoryData 误对齐。
 - 当前 QA 已覆盖韩文残留、占位符、标签、数字、换行、术语命中、疑似繁体和字符级长度风险，但还没有 MQM 分类和像素级 UI 长度。
-- 当前术语候选提取是 heuristic 召回，不是 LLM 定稿。
+- 当前术语候选提取和 rules refiner 只是自动粗筛；OpenAI provider 也只能给建议译名，正式术语仍需人工确认后进入 termbase。
 - Chrome 插件连接 Paratranz 页面失败，但子任务已通过公开 API 证明术语可读；若要用 Chrome，需要用户允许打开 Chrome 窗口刷新扩展连接。
 
 ### 下一步
 
 - 增加 fuzzy TM。
 - 增加 MQM 分类和按 UI 容器的长度策略。
-- 增加 LLM 术语提炼 provider，把候选短语转成“正式术语 / 非术语 / 需人工判断”。
+- 把 refined term 审校结果回写正式 termbase，并接入翻译 prompt 的世界观上下文包。
 - 建立 500-1000 条 gold set，用于模型赛马和 prompt 回归。
 
 ## 2026-06-09 — 文档骨架初版

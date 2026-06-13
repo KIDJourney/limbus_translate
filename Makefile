@@ -4,7 +4,7 @@ validate-docs:
 	./scripts/validate-docs.sh
 
 test:
-	python3 -c "from tests.test_scanner import test_scan_missing_detects_korean_target_and_blank_target, test_scan_aligns_data_list_by_id_when_order_changes, test_scan_reports_missing_data_list_record; from tests.test_glossary import test_match_terms_uses_source_and_variants; from tests.test_qa import test_qa_detects_placeholder_mismatch, test_qa_detects_traditional_and_length; from tests.test_terms import test_extract_term_candidates_excludes_known_glossary; from tests.test_translator import test_translate_appends_missing_data_list_record; from tests.test_state import test_translate_skips_locked_unit; test_scan_missing_detects_korean_target_and_blank_target(); test_scan_aligns_data_list_by_id_when_order_changes(); test_scan_reports_missing_data_list_record(); test_match_terms_uses_source_and_variants(); test_qa_detects_placeholder_mismatch(); test_qa_detects_traditional_and_length(); test_extract_term_candidates_excludes_known_glossary(); test_translate_appends_missing_data_list_record(); test_translate_skips_locked_unit(); print('direct unit tests passed')"
+	python3 -c "from tests.test_scanner import test_scan_missing_detects_korean_target_and_blank_target, test_scan_aligns_data_list_by_id_when_order_changes, test_scan_reports_missing_data_list_record; from tests.test_glossary import test_match_terms_uses_source_and_variants; from tests.test_qa import test_qa_detects_placeholder_mismatch, test_qa_detects_traditional_and_length; from tests.test_terms import test_extract_term_candidates_excludes_known_glossary, test_rules_refiner_classifies_core_decisions, test_refined_terms_cache_roundtrip, test_get_term_refiner_resolves_supported_providers; from tests.test_translator import test_translate_appends_missing_data_list_record; from tests.test_state import test_translate_skips_locked_unit; test_scan_missing_detects_korean_target_and_blank_target(); test_scan_aligns_data_list_by_id_when_order_changes(); test_scan_reports_missing_data_list_record(); test_match_terms_uses_source_and_variants(); test_qa_detects_placeholder_mismatch(); test_qa_detects_traditional_and_length(); test_extract_term_candidates_excludes_known_glossary(); test_rules_refiner_classifies_core_decisions(); test_refined_terms_cache_roundtrip(); test_get_term_refiner_resolves_supported_providers(); test_translate_appends_missing_data_list_record(); test_translate_skips_locked_unit(); print('direct unit tests passed')"
 
 smoke:
 	python3 -m limbus_translate.cli scan \
@@ -33,6 +33,11 @@ smoke:
 	python3 -m limbus_translate.cli terms extract \
 		--units build/missing-units.json \
 		--output build/term-candidates.json
+	python3 -m limbus_translate.cli terms refine \
+		--candidates build/term-candidates.json \
+		--output build/refined-terms.json \
+		--provider rules
+	python3 -c "import json; rows=json.load(open('build/refined-terms.json', encoding='utf-8')); required={'source','decision','confidence','provider','contexts','count','sample_text','reason'}; assert isinstance(rows, list); assert all(required <= set(row) for row in rows); assert all(row['decision'] in {'term','not_term','needs_review'} for row in rows); assert all(row['provider'] == 'rules' for row in rows); print('refined terms schema ok')"
 
 sync-glossary:
 	python3 -m limbus_translate.cli glossary sync-paratranz \

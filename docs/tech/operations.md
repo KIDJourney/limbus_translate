@@ -53,7 +53,14 @@ python3 -m limbus_translate.cli terms extract \
   --units build/missing-units.json \
   --glossary cache/glossary/paratranz-6860.json \
   --output cache/terms/candidates.json
+
+python3 -m limbus_translate.cli terms refine \
+  --candidates cache/terms/candidates.json \
+  --output cache/terms/refined.json \
+  --provider rules
 ```
+
+`terms refine --provider openai` 可用于正式术语初筛和建议译名，但它依赖 OpenAI 可选依赖与 API key；输出仍应进入人工审校，不直接写入正式 termbase。
 
 ## 文档验证
 

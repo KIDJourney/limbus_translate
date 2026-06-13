@@ -17,7 +17,7 @@ LocalizeLimbusCompany checkout
     -> providers.py: dry-run / OpenAI provider
     -> translator.py: overlay existing target tree and set translated JSON paths
     -> qa.py: placeholders, tags, numbers, line breaks, glossary checks
-    -> terms.py: candidate term cache for LLM/human review
+    -> terms.py: candidate extraction, refiner providers, refined term cache
     -> build/LLC_zh-CN/**/*.json
 ```
 
@@ -33,7 +33,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/providers.py` | 翻译 provider 抽象，默认 dry-run，OpenAI 为 GPT 兜底 |
 | `limbus_translate/translator.py` | 把候选译文写回同结构 JSON 输出树；对 `missing_target_record` 会复制源 record 到目标 `dataList` 后替换待译字段 |
 | `limbus_translate/qa.py` | 检查韩文残留、占位符、标签、数字、换行和术语命中 |
-| `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语 |
+| `limbus_translate/terms.py` | 从新增文本提取待确认术语/短语候选，排除已知 Paratranz 术语；通过 `rules` / `openai` provider 输出 refined term cache |
 | `limbus_translate/cli.py` | 命令行入口 |
 | `tests/fixtures/` | 最小 Localize JSON 测试夹具 |
 | `docs/research/` | 模型、流程、外部来源调研 |
@@ -46,7 +46,7 @@ LocalizeLimbusCompany checkout
 4. `translate` 读取待译单元、术语缓存和 TM，按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。
 5. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
 6. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险。
-7. `terms extract` 从新增文本提取候选词/短语，进入 LLM 或人工二次筛选。
+7. `terms extract` 从新增文本提取候选词/短语，`terms refine` 生成 `cache/terms/refined.json`，把候选分为 `term` / `not_term` / `needs_review` 后进入人工审校或正式 termbase。
 8. 审校通过后，译文进入目标语言包、TM 和回归评估集。
 
 ## 设计原则
@@ -56,5 +56,5 @@ LocalizeLimbusCompany checkout
 | 语义 diff 优先 | 不做文本行 diff；以 JSON path、唯一记录 id、字段类型和 source hash 为核心 |
 | 格式不破坏 | 保留 JSON 结构、占位符、标签、换行和目标文件路径 |
 | 术语先行 | 翻译前注入 Paratranz / 本地术语，翻译后做术语命中 QA |
-| Provider 可替换 | 不把扫描、术语、写回逻辑绑定到某个模型供应商 |
+| Provider 可替换 | 不把扫描、术语、写回逻辑绑定到某个模型供应商；术语提炼默认 `rules` 离线可跑，`openai` 可选 |
 | 可离线验证 | 没有 API key 时也能用 dry-run 测通扫描和输出 |
