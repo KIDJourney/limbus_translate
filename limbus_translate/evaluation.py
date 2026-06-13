@@ -13,6 +13,14 @@ from .glossary import GlossaryTerm, match_terms
 from .json_paths import contains_cjk, contains_hangul, get_path, is_translatable_path, iter_text_nodes
 from .providers import TranslationProvider, TranslationRequest
 from .scanner import classify_risk, load_json
+from .translation_cache import (
+    TranslationCacheEntry,
+    TranslationRequestLogEntry,
+    build_cache_key,
+    digest_text,
+    make_cache_entry,
+    make_request_log_entry,
+)
 
 
 @dataclass(frozen=True)
@@ -268,24 +276,23 @@ def run_gold_evaluation(
     provider: TranslationProvider,
     *,
     min_similarity: float = 0.75,
+    provider_name: str = "",
+    candidate_cache: dict[str, TranslationCacheEntry] | None = None,
+    candidate_cache_updates: list[TranslationCacheEntry] | None = None,
+    request_log: list[TranslationRequestLogEntry] | None = None,
 ) -> list[EvalResult]:
     results: list[EvalResult] = []
     for case in cases:
-        request = TranslationRequest(
-            source_text=case.source_text,
-            glossary=[(term.source, term.target, term.note) for term in case.glossary],
-            context=json.dumps(
-                {
-                    "case_id": case.case_id,
-                    "tags": case.tags,
-                    "note": case.note,
-                    "gold_context": case.context,
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            ),
+        request = build_eval_request(case)
+        predicted = translate_eval_case(
+            case,
+            request,
+            provider,
+            provider_name=provider_name,
+            candidate_cache=candidate_cache,
+            candidate_cache_updates=candidate_cache_updates,
+            request_log=request_log,
         )
-        predicted = provider.translate(request)
         issues = evaluate_prediction(case, predicted, min_similarity=min_similarity)
         results.append(
             EvalResult(
@@ -305,15 +312,109 @@ def run_gold_evaluation(
 
 def run_eval_comparison(
     cases: list[GoldCase],
-    providers: list[tuple[str, TranslationProvider]],
+    providers: list[tuple[str, TranslationProvider] | tuple[str, str, TranslationProvider]],
     *,
     min_similarity: float = 0.75,
+    candidate_cache: dict[str, TranslationCacheEntry] | None = None,
+    candidate_cache_updates: list[TranslationCacheEntry] | None = None,
+    request_log: list[TranslationRequestLogEntry] | None = None,
 ) -> list[EvalComparison]:
     comparisons: list[EvalComparison] = []
-    for label, provider in providers:
-        results = run_gold_evaluation(cases, provider, min_similarity=min_similarity)
+    for provider_spec in providers:
+        if len(provider_spec) == 2:
+            label, provider = provider_spec
+            provider_name = label
+        else:
+            label, provider_name, provider = provider_spec
+        results = run_gold_evaluation(
+            cases,
+            provider,
+            min_similarity=min_similarity,
+            provider_name=provider_name,
+            candidate_cache=candidate_cache,
+            candidate_cache_updates=candidate_cache_updates,
+            request_log=request_log,
+        )
         comparisons.append(EvalComparison(provider=label, summary=summarize_eval(results), results=results))
     return comparisons
+
+
+def build_eval_request(case: GoldCase) -> TranslationRequest:
+    return TranslationRequest(
+        source_text=case.source_text,
+        glossary=[(term.source, term.target, term.note) for term in case.glossary],
+        context=json.dumps(
+            {
+                "case_id": case.case_id,
+                "tags": case.tags,
+                "note": case.note,
+                "gold_context": case.context,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+    )
+
+
+def translate_eval_case(
+    case: GoldCase,
+    request: TranslationRequest,
+    provider: TranslationProvider,
+    *,
+    provider_name: str = "",
+    candidate_cache: dict[str, TranslationCacheEntry] | None = None,
+    candidate_cache_updates: list[TranslationCacheEntry] | None = None,
+    request_log: list[TranslationRequestLogEntry] | None = None,
+) -> str:
+    provider_key = provider_name or provider.__class__.__name__
+    source_hash = digest_text(case.source_text)
+    cache_key, context_hash, glossary_hash = build_cache_key(
+        provider=provider_key,
+        source_hash=source_hash,
+        context=request.context,
+        glossary=request.glossary,
+    )
+    cached = (candidate_cache or {}).get(cache_key)
+    if cached is not None:
+        return cached.target_text
+    relative_file = str(case.context.get("relative_file", "")) if isinstance(case.context, dict) else ""
+    json_path = str(case.context.get("json_path", "")) if isinstance(case.context, dict) else ""
+    if request_log is not None:
+        request_log.append(
+            make_request_log_entry(
+                cache_key=cache_key,
+                provider=provider_key,
+                source_hash=source_hash,
+                context_hash=context_hash,
+                glossary_hash=glossary_hash,
+                unit_id=case.case_id,
+                stable_key=case.case_id,
+                relative_file=relative_file,
+                json_path=json_path,
+                source_text=case.source_text,
+                glossary=request.glossary,
+                context=request.context,
+            )
+        )
+    translated = provider.translate(request)
+    if candidate_cache_updates is not None:
+        entry = make_cache_entry(
+            cache_key=cache_key,
+            provider=provider_key,
+            source_hash=source_hash,
+            context_hash=context_hash,
+            glossary_hash=glossary_hash,
+            unit_id=case.case_id,
+            stable_key=case.case_id,
+            relative_file=relative_file,
+            json_path=json_path,
+            source_text=case.source_text,
+            target_text=translated,
+        )
+        candidate_cache_updates.append(entry)
+        if candidate_cache is not None:
+            candidate_cache[cache_key] = entry
+    return translated
 
 
 def evaluate_prediction(case: GoldCase, predicted_text: str, *, min_similarity: float) -> list[str]:

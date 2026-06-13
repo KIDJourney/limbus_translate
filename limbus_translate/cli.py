@@ -565,7 +565,28 @@ def cmd_state_init(args: argparse.Namespace) -> int:
 
 def cmd_eval_run(args: argparse.Namespace) -> int:
     cases = read_gold_cases(Path(args.gold))
-    results = run_gold_evaluation(cases, get_provider(args.provider), min_similarity=args.min_similarity)
+    candidate_cache_path = Path(args.candidate_cache) if args.candidate_cache else None
+    candidate_cache = read_translation_cache(candidate_cache_path) if candidate_cache_path is not None else {}
+    candidate_cache_updates = []
+    request_log = []
+    results = run_gold_evaluation(
+        cases,
+        get_provider(args.provider),
+        min_similarity=args.min_similarity,
+        provider_name=args.provider,
+        candidate_cache=candidate_cache,
+        candidate_cache_updates=candidate_cache_updates if candidate_cache_path is not None else None,
+        request_log=request_log if args.request_log else None,
+    )
+    if candidate_cache_path is not None:
+        merged_cache = dict(candidate_cache)
+        for entry in candidate_cache_updates:
+            merged_cache[entry.cache_key] = entry
+        write_translation_cache(candidate_cache_path, merged_cache)
+        print(f"eval candidate cache updated: +{len(candidate_cache_updates)} -> {candidate_cache_path}")
+    if args.request_log:
+        write_translation_request_log(Path(args.request_log), request_log)
+        print(f"eval request log written: {len(request_log)} rows -> {args.request_log}")
     write_eval_report(Path(args.report), results)
     summary = summarize_eval(results)
     print(f"eval complete: {summary['total']} cases -> {args.report}")
@@ -575,8 +596,29 @@ def cmd_eval_run(args: argparse.Namespace) -> int:
 
 def cmd_eval_compare(args: argparse.Namespace) -> int:
     cases = read_gold_cases(Path(args.gold))
-    providers = [(label, get_provider(spec)) for label, spec in parse_provider_specs(args.provider)]
-    comparisons = run_eval_comparison(cases, providers, min_similarity=args.min_similarity)
+    provider_specs = parse_provider_specs(args.provider)
+    providers = [(label, spec, get_provider(spec)) for label, spec in provider_specs]
+    candidate_cache_path = Path(args.candidate_cache) if args.candidate_cache else None
+    candidate_cache = read_translation_cache(candidate_cache_path) if candidate_cache_path is not None else {}
+    candidate_cache_updates = []
+    request_log = []
+    comparisons = run_eval_comparison(
+        cases,
+        providers,
+        min_similarity=args.min_similarity,
+        candidate_cache=candidate_cache,
+        candidate_cache_updates=candidate_cache_updates if candidate_cache_path is not None else None,
+        request_log=request_log if args.request_log else None,
+    )
+    if candidate_cache_path is not None:
+        merged_cache = dict(candidate_cache)
+        for entry in candidate_cache_updates:
+            merged_cache[entry.cache_key] = entry
+        write_translation_cache(candidate_cache_path, merged_cache)
+        print(f"eval candidate cache updated: +{len(candidate_cache_updates)} -> {candidate_cache_path}")
+    if args.request_log:
+        write_translation_request_log(Path(args.request_log), request_log)
+        print(f"eval request log written: {len(request_log)} rows -> {args.request_log}")
     write_eval_comparison_report(Path(args.report), comparisons)
     summary = summarize_eval_comparison(comparisons)
     print(f"eval compare complete: {summary['providers']} providers -> {args.report}")
@@ -801,6 +843,8 @@ def build_parser() -> argparse.ArgumentParser:
     eval_run.add_argument("--gold", required=True)
     eval_run.add_argument("--provider", default="dry-run")
     eval_run.add_argument("--report", default="build/eval-report.json")
+    eval_run.add_argument("--candidate-cache", default="", help="Optional provider candidate cache JSON to read and update.")
+    eval_run.add_argument("--request-log", default="", help="Optional JSONL path for provider request payloads.")
     eval_run.add_argument("--min-similarity", type=float, default=0.75)
     eval_run.add_argument("--fail-under", type=float, default=0.0, help="Fail if pass_rate is below this value.")
     eval_run.set_defaults(func=cmd_eval_run)
@@ -813,6 +857,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Provider spec, optionally label=spec. Examples: dry=dry-run, gpt41=openai:gpt-4.1.",
     )
     eval_compare.add_argument("--report", default="build/eval-compare-report.json")
+    eval_compare.add_argument("--candidate-cache", default="", help="Optional provider candidate cache JSON to read and update.")
+    eval_compare.add_argument("--request-log", default="", help="Optional JSONL path for provider request payloads.")
     eval_compare.add_argument("--min-similarity", type=float, default=0.75)
     eval_compare.add_argument("--fail-under", type=float, default=0.0, help="Fail if the best pass_rate is below this value.")
     eval_compare.set_defaults(func=cmd_eval_compare)

@@ -167,6 +167,8 @@ python3 -m limbus_translate.cli eval apply-review \
 python3 -m limbus_translate.cli eval run \
   --gold cache/eval/gold-curated.json \
   --provider dry-run \
+  --candidate-cache cache/eval/candidates.json \
+  --request-log build/eval-requests.jsonl \
   --report build/eval-report.json
 
 python3 -m limbus_translate.cli eval compare \
@@ -174,6 +176,8 @@ python3 -m limbus_translate.cli eval compare \
   --provider baseline=dry-run \
   --provider gpt41=openai:gpt-4.1 \
   --provider qwen=qwen-mt:qwen-mt-plus \
+  --candidate-cache cache/eval/candidates.json \
+  --request-log build/eval-compare-requests.jsonl \
   --report build/eval-compare-report.json
 
 python3 -m limbus_translate.cli terms extract \
@@ -204,7 +208,7 @@ python3 -m limbus_translate.cli terms promote \
 
 `refined.json` 中的 `decision` 为 `term` / `not_term` / `needs_review`，并保留 `suggested_target`、`confidence`、`note`、`contexts`、`provider` 等字段。`terms refine --cache` 会读取并更新持久 refined cache；缓存命中时复用旧 decision / suggested target / note，同时刷新本轮 contexts、count 和 sample text。`terms review-pack` 会输出 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`，默认排除 `not_term`；`terms apply-review` 只会导入 `approved` 明确为真且 `target` 非空的审校行；`terms promote` 只会导出 `decision=term` 且有 `suggested_target` 的记录。
 
-`eval sample-gold` 可按 `tag` / `risk` / `file` 分层抽样，避免评估集过度偏向单一文本类型；`eval review-pack` 会导出 `review.csv` 和 `review.jsonl` 供人工确认，`eval apply-review` 只把 `approved` 明确为真且能匹配原始 gold case 的行写回 curated gold set，并保留原始 glossary / context / tags。`--provider` 支持 `dry-run`、`openai`、`openai:<model>`、`openai-chat`、`openai-chat:<model>`、`qwen-mt` 和 `qwen-mt:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。
+`eval sample-gold` 可按 `tag` / `risk` / `file` 分层抽样，避免评估集过度偏向单一文本类型；`eval review-pack` 会导出 `review.csv` 和 `review.jsonl` 供人工确认，`eval apply-review` 只把 `approved` 明确为真且能匹配原始 gold case 的行写回 curated gold set，并保留原始 glossary / context / tags。`--provider` 支持 `dry-run`、`openai`、`openai:<model>`、`openai-chat`、`openai-chat:<model>`、`qwen-mt` 和 `qwen-mt:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。`eval run` / `eval compare` 支持 `--candidate-cache` 和 `--request-log`，cache key 使用 provider spec 而不是 label，因此同一模型改名比较不会重复调用。
 
 使用 OpenAI provider 前需要安装可选依赖并设置 API key。`openai` 使用 Responses API；`openai-chat` 使用 OpenAI-compatible Chat Completions，读取 `OPENAI_COMPATIBLE_API_KEY`、`OPENAI_COMPATIBLE_BASE_URL` 和 `OPENAI_COMPATIBLE_MODEL`；`qwen-mt` 默认读取 `DASHSCOPE_API_KEY`、`DASHSCOPE_BASE_URL`、`QWEN_MT_BASE_URL` 和 `QWEN_MT_MODEL`，默认 base URL 为 `https://dashscope.aliyuncs.com/compatible-mode/v1`，默认模型为 `qwen-mt-plus`。
 

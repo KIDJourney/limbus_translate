@@ -57,6 +57,16 @@ class BadProvider:
         return "错误译文"
 
 
+class CountingEvalProvider:
+    def __init__(self, target_text: str = "缓存译文。") -> None:
+        self.calls = 0
+        self.target_text = target_text
+
+    def translate(self, request: TranslationRequest) -> str:
+        self.calls += 1
+        return self.target_text
+
+
 def make_gold_case(case_id: str, tags: list[str], risk: str = "medium"):
     return GoldCase(
         case_id=case_id,
@@ -120,6 +130,69 @@ def test_eval_comparison_ranks_providers() -> None:
     assert summary["rankings"][1]["provider"] == "bad"
     assert '"providers"' in text
     assert '"rankings"' in text
+
+
+def test_gold_evaluation_reuses_candidate_cache_and_logs_requests() -> None:
+    cases = [make_gold_case("story-1", ["story"])]
+    provider = CountingEvalProvider()
+    cache_updates = []
+    request_log = []
+
+    first = run_gold_evaluation(
+        cases,
+        provider,
+        provider_name="qwen-mt:qwen-mt-plus",
+        candidate_cache={},
+        candidate_cache_updates=cache_updates,
+        request_log=request_log,
+    )
+    cache = {entry.cache_key: entry for entry in cache_updates}
+    second_provider = CountingEvalProvider("不应调用。")
+    second_log = []
+    second = run_gold_evaluation(
+        cases,
+        second_provider,
+        provider_name="qwen-mt:qwen-mt-plus",
+        candidate_cache=cache,
+        candidate_cache_updates=[],
+        request_log=second_log,
+    )
+
+    assert provider.calls == 1
+    assert second_provider.calls == 0
+    assert first[0].predicted_text == second[0].predicted_text == "缓存译文。"
+    assert len(cache_updates) == 1
+    assert len(request_log) == 1
+    assert request_log[0].provider == "qwen-mt:qwen-mt-plus"
+    assert request_log[0].unit_id == "story-1"
+    assert "gold_context" in request_log[0].context
+    assert second_log == []
+
+
+def test_eval_comparison_cache_key_uses_provider_spec_not_label() -> None:
+    cases = [make_gold_case("story-1", ["story"])]
+    first_provider = CountingEvalProvider()
+    cache_updates = []
+
+    run_eval_comparison(
+        cases,
+        [("first-label", "same-provider-spec", first_provider)],
+        candidate_cache={},
+        candidate_cache_updates=cache_updates,
+    )
+    cache = {entry.cache_key: entry for entry in cache_updates}
+    second_provider = CountingEvalProvider("不应调用。")
+    comparisons = run_eval_comparison(
+        cases,
+        [("renamed-label", "same-provider-spec", second_provider)],
+        candidate_cache=cache,
+        candidate_cache_updates=[],
+    )
+
+    assert first_provider.calls == 1
+    assert second_provider.calls == 0
+    assert comparisons[0].provider == "renamed-label"
+    assert comparisons[0].results[0].predicted_text == "缓存译文。"
 
 
 def test_sample_gold_cases_is_stratified_and_repeatable() -> None:
