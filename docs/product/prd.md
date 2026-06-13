@@ -36,7 +36,7 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 | 数据 adapter | 按文件类型区分可见文本、内部 ID、特殊主键 | 部分完成，需继续细化 |
 | 审校状态 | 维护 `new` / `reviewed` / `locked`，避免覆盖人工定稿 | 已完成初版 |
 | 自动 QA | 占位符、标签、数字、术语命中、简繁、长度检查和 MQM 风格分类 | 已完成初版；路径/risk 字符级 length policy 和估算显示宽度已完成，像素级 UI 容器测量未完成 |
-| Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成从参考译文构建 gold set、分层采样、单 provider eval report 和多 provider compare report 初版；人工确认 gold set 和真实模型赛马未完成 |
+| Gold set / 模型评估 | 用固定样本评估 provider 翻译质量和 prompt 变更风险 | 已完成从参考译文构建 gold set、分层采样、人工审校回写、单 provider eval report 和多 provider compare report 初版；真实模型赛马未完成 |
 | 翻译记忆 / RAG | 句段复用、相似上下文、世界观资料检索 | exact-match TM、基础 fuzzy TM 和轻量 lore 检索已完成；embedding 向量库和 gold set 调参未完成 |
 
 ## 当前不做
@@ -58,3 +58,4 @@ Limbus Translate 是一个韩文到简体中文的游戏本地化自动化工具
 6. 作为术语维护者，我希望新增候选先被自动分流，减少人工从整句和普通短语里筛术语的成本。
 7. 作为术语维护者，我希望自动提炼结果能导出为可审校表格和 Paratranz 候选导入文件，而不是直接污染正式术语库。
 8. 作为术语维护者，我希望已审校通过的表格能被工具重新导入为本地术语缓存，后续翻译自动使用。
+9. 作为模型评估维护者，我希望自动抽样的 gold set 能导出给人工确认，并把确认后的样本回写为 curated gold，避免未审样本污染模型赛马结果。

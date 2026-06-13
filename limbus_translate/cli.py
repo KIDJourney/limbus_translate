@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .evaluation import (
+    apply_gold_review_csv,
     build_gold_cases,
     read_gold_cases,
     run_eval_comparison,
@@ -16,6 +17,7 @@ from .evaluation import (
     write_eval_comparison_report,
     write_eval_report,
     write_gold_cases,
+    write_gold_review_pack,
 )
 from .glossary import fetch_paratranz_terms, import_terms, read_cache, write_cache
 from .lore import import_lore, read_lore_cache, write_lore_cache
@@ -258,6 +260,22 @@ def cmd_eval_sample_gold(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_eval_review_pack(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    summary = write_gold_review_pack(Path(args.output_dir), cases)
+    print(f"gold review-pack complete: {summary['selected']} cases -> {args.output_dir}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def cmd_eval_apply_review(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    curated = apply_gold_review_csv(Path(args.review), cases)
+    write_gold_cases(Path(args.output), curated)
+    print(f"gold apply-review complete: {len(curated)} approved cases -> {args.output}")
+    return 0
+
+
 def parse_provider_specs(values: list[str]) -> list[tuple[str, str]]:
     providers: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -376,6 +394,15 @@ def build_parser() -> argparse.ArgumentParser:
     eval_sample.add_argument("--group-by", choices=["tag", "risk", "file"], default="tag")
     eval_sample.add_argument("--seed", type=int, default=1)
     eval_sample.set_defaults(func=cmd_eval_sample_gold)
+    eval_review_pack = eval_sub.add_parser("review-pack")
+    eval_review_pack.add_argument("--gold", required=True)
+    eval_review_pack.add_argument("--output-dir", default="build/gold-review")
+    eval_review_pack.set_defaults(func=cmd_eval_review_pack)
+    eval_apply_review = eval_sub.add_parser("apply-review")
+    eval_apply_review.add_argument("--gold", required=True)
+    eval_apply_review.add_argument("--review", default="build/gold-review/review.csv")
+    eval_apply_review.add_argument("--output", default="cache/eval/gold-curated.json")
+    eval_apply_review.set_defaults(func=cmd_eval_apply_review)
 
     terms = sub.add_parser("terms", help="Extract and cache candidate glossary terms.")
     terms_sub = terms.add_subparsers(required=True)

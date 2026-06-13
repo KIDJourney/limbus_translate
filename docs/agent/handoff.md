@@ -2,6 +2,28 @@
 
 本文档维护最近一次工作交接记录。每次完成实质性变更后，把本轮结果追加到顶部。
 
+## 2026-06-13 — Gold set 人工审校回写
+
+### 已完成
+
+- 新增 `eval review-pack` CLI，可把 gold/sample gold 导出为 `review.csv` 和 `review.jsonl`。
+- 新增 `eval apply-review` CLI，读取审校后的 CSV，只导入 `approved` 明确为真的行，支持用 `revised_expected_text` 修订参考译文。
+- `apply-review` 依赖原始 gold 文件做 case_id 匹配，回写 curated gold 时保留原始 glossary、context、tags 和 source_text。
+- `make smoke` 已接入 gold sample -> review pack -> simulated approved review -> curated gold 的链路。
+
+### 验证状态
+
+- `make test`：通过，直接单元测试覆盖 review pack 字段、JSONL 结构、approved 判定、修订 expected_text 和保留结构化 gold case。
+- `python3 -m compileall -q limbus_translate`：通过。
+- `git diff --check`：通过。
+- `make validate-docs`：通过，36 个 Markdown 文件。
+- `make smoke`：通过，生成 `build/gold-review/review.csv`、`build/gold-review/review.jsonl` 和 1 条 `build/gold-curated.json`。
+- 真实 Localize checkout 小样本：`eval build-gold --limit 50` 生成 50 条；`eval sample-gold --per-group 3 --group-by tag --seed 11` 生成 9 条；`eval review-pack` 生成 9 条审校包；模拟确认 1 条后 `eval apply-review` 生成 curated gold，保留 context/tags。
+
+### 风险
+
+- 这解决了 curated gold 的工程闭环，但真实模型赛马仍需要人工实际审校样本，而不是使用 smoke 里的模拟确认。
+
 ## 2026-06-13 — Gold set 分层采样
 
 ### 已完成

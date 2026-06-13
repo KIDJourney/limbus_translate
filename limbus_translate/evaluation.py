@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import random
 from dataclasses import asdict, dataclass, field
@@ -52,6 +53,9 @@ class EvalComparison:
     results: list[EvalResult]
 
 
+APPROVED_VALUES = {"1", "true", "yes", "y", "approved", "approve", "ok", "是", "通过", "已确认", "确认"}
+
+
 def read_gold_cases(path: Path) -> list[GoldCase]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     rows = payload.get("cases", payload) if isinstance(payload, dict) else payload
@@ -67,6 +71,91 @@ def write_gold_cases(path: Path, cases: list[GoldCase]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"cases": [asdict(case) for case in cases]}
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def write_gold_review_pack(output_dir: Path, cases: list[GoldCase]) -> dict[str, int | str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    review_csv = output_dir / "review.csv"
+    review_jsonl = output_dir / "review.jsonl"
+    fieldnames = [
+        "case_id",
+        "approved",
+        "expected_text",
+        "revised_expected_text",
+        "source_text",
+        "tags",
+        "risk",
+        "relative_file",
+        "json_path",
+        "note",
+        "reviewer_note",
+    ]
+    with review_csv.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for case in cases:
+            writer.writerow(
+                {
+                    "case_id": case.case_id,
+                    "approved": "",
+                    "expected_text": case.expected_text,
+                    "revised_expected_text": "",
+                    "source_text": case.source_text,
+                    "tags": " | ".join(case.tags),
+                    "risk": case.context.get("risk", "") if isinstance(case.context, dict) else "",
+                    "relative_file": case.context.get("relative_file", "") if isinstance(case.context, dict) else "",
+                    "json_path": case.context.get("json_path", "") if isinstance(case.context, dict) else "",
+                    "note": case.note,
+                    "reviewer_note": "",
+                }
+            )
+    with review_jsonl.open("w", encoding="utf-8") as handle:
+        for case in cases:
+            payload = asdict(case)
+            payload["approved"] = ""
+            payload["revised_expected_text"] = ""
+            payload["reviewer_note"] = ""
+            handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+    return {"selected": len(cases), "review_csv": str(review_csv), "review_jsonl": str(review_jsonl)}
+
+
+def apply_gold_review_csv(review_path: Path, cases: list[GoldCase]) -> list[GoldCase]:
+    by_id = {case.case_id: case for case in cases}
+    with review_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    curated: list[GoldCase] = []
+    seen: set[str] = set()
+    for row in rows:
+        case_id = str(row.get("case_id", "")).strip()
+        if not case_id or case_id in seen:
+            continue
+        source = by_id.get(case_id)
+        if source is None:
+            continue
+        if not _is_approved(str(row.get("approved", ""))):
+            continue
+        revised = str(row.get("revised_expected_text", "")).strip()
+        expected = revised or source.expected_text
+        if not expected:
+            continue
+        reviewer_note = str(row.get("reviewer_note", "")).strip()
+        note = source.note
+        if reviewer_note:
+            note = "; ".join(part for part in [source.note, f"reviewer={reviewer_note}"] if part)
+        curated.append(
+            GoldCase(
+                case_id=source.case_id,
+                source_text=source.source_text,
+                expected_text=expected,
+                glossary=source.glossary,
+                context=source.context,
+                tags=source.tags,
+                note=note,
+            )
+        )
+        seen.add(case_id)
+    return curated
 
 
 def sample_gold_cases(
@@ -354,6 +443,10 @@ def _sample_group_labels(case: GoldCase, group_by: str) -> list[str]:
         relative = case.context.get("relative_file") if isinstance(case.context, dict) else None
         return [str(relative or "unknown")]
     raise ValueError(f"unknown gold sample group: {group_by}")
+
+
+def _is_approved(value: str) -> bool:
+    return value.strip().lower() in APPROVED_VALUES
 
 
 def _case_from_row(row: dict[str, Any], *, fallback_id: str) -> GoldCase:

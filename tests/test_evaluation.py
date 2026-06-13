@@ -1,7 +1,12 @@
+import csv
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from limbus_translate.evaluation import (
+    GoldCase,
+    GoldTerm,
+    apply_gold_review_csv,
     build_gold_cases,
     read_gold_cases,
     run_eval_comparison,
@@ -12,6 +17,7 @@ from limbus_translate.evaluation import (
     write_eval_comparison_report,
     write_eval_report,
     write_gold_cases,
+    write_gold_review_pack,
 )
 from limbus_translate.glossary import GlossaryTerm
 from limbus_translate.providers import TranslationRequest
@@ -52,8 +58,6 @@ class BadProvider:
 
 
 def make_gold_case(case_id: str, tags: list[str], risk: str = "medium"):
-    from limbus_translate.evaluation import GoldCase
-
     return GoldCase(
         case_id=case_id,
         source_text=f"{case_id} 원문",
@@ -170,3 +174,100 @@ def test_write_gold_cases_roundtrip() -> None:
         loaded = read_gold_cases(path)
 
     assert loaded == cases
+
+
+def test_write_gold_review_pack_exports_review_files() -> None:
+    cases = [
+        GoldCase(
+            case_id="story-1",
+            source_text="단테가 말했다.",
+            expected_text="但丁说道。",
+            glossary=[GoldTerm(source="단테", target="但丁", note="name")],
+            context={"relative_file": "StoryData/A.json", "json_path": "dataList[0].content", "risk": "high"},
+            tags=["high", "story"],
+            note="sample note",
+        )
+    ]
+    with TemporaryDirectory() as tmp:
+        summary = write_gold_review_pack(Path(tmp), cases)
+        with (Path(tmp) / "review.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+            review_rows = list(csv.DictReader(handle))
+        jsonl_rows = [json.loads(line) for line in (Path(tmp) / "review.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert summary["selected"] == 1
+    assert review_rows[0]["case_id"] == "story-1"
+    assert review_rows[0]["approved"] == ""
+    assert review_rows[0]["expected_text"] == "但丁说道。"
+    assert review_rows[0]["tags"] == "high | story"
+    assert review_rows[0]["relative_file"] == "StoryData/A.json"
+    assert review_rows[0]["json_path"] == "dataList[0].content"
+    assert jsonl_rows[0]["glossary"][0]["target"] == "但丁"
+    assert jsonl_rows[0]["context"]["risk"] == "high"
+
+
+def test_apply_gold_review_csv_preserves_original_case_structure() -> None:
+    cases = [
+        GoldCase(
+            case_id="story-1",
+            source_text="단테가 말했다.",
+            expected_text="但丁说道。",
+            glossary=[GoldTerm(source="단테", target="但丁", note="name")],
+            context={"relative_file": "StoryData/A.json", "json_path": "dataList[0].content", "risk": "high"},
+            tags=["high", "story"],
+        ),
+        make_gold_case("story-2", ["story"]),
+        make_gold_case("story-3", ["story"]),
+    ]
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "review.csv"
+        with path.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["case_id", "approved", "expected_text", "revised_expected_text", "reviewer_note"],
+            )
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "case_id": "story-1",
+                    "approved": "yes",
+                    "expected_text": "但丁说道。",
+                    "revised_expected_text": "但丁开口了。",
+                    "reviewer_note": "tone fixed",
+                }
+            )
+            writer.writerow(
+                {
+                    "case_id": "story-2",
+                    "approved": "",
+                    "expected_text": "story-2 译文",
+                    "revised_expected_text": "",
+                    "reviewer_note": "pending",
+                }
+            )
+            writer.writerow(
+                {
+                    "case_id": "story-3",
+                    "approved": "通过",
+                    "expected_text": "story-3 译文",
+                    "revised_expected_text": "",
+                    "reviewer_note": "",
+                }
+            )
+            writer.writerow(
+                {
+                    "case_id": "unknown",
+                    "approved": "yes",
+                    "expected_text": "unknown",
+                    "revised_expected_text": "",
+                    "reviewer_note": "",
+                }
+            )
+        curated = apply_gold_review_csv(path, cases)
+
+    assert [case.case_id for case in curated] == ["story-1", "story-3"]
+    assert curated[0].expected_text == "但丁开口了。"
+    assert curated[0].glossary[0].target == "但丁"
+    assert curated[0].context["relative_file"] == "StoryData/A.json"
+    assert curated[0].tags == ["high", "story"]
+    assert curated[0].note == "reviewer=tone fixed"
+    assert curated[1].expected_text == "story-3 译文"
