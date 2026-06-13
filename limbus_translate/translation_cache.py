@@ -189,3 +189,54 @@ def write_translation_request_log(path: Path, entries: list[TranslationRequestLo
         for entry in entries:
             handle.write(json.dumps(asdict(entry), ensure_ascii=False, sort_keys=True))
             handle.write("\n")
+
+
+def summarize_request_usage(entries: list[TranslationRequestLogEntry]) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "requests": len(entries),
+        "total": {},
+        "by_provider": {},
+        "by_model": {},
+    }
+    for entry in entries:
+        scalar_usage = numeric_usage(entry.usage)
+        merge_usage(summary["total"], scalar_usage)
+        provider_key = entry.provider or "unknown"
+        model_key = entry.response_model or "unknown"
+        merge_usage_group(summary["by_provider"], provider_key, scalar_usage)
+        merge_usage_group(summary["by_model"], model_key, scalar_usage)
+    summary["total"] = dict(sorted(summary["total"].items()))
+    summary["by_provider"] = sort_usage_groups(summary["by_provider"])
+    summary["by_model"] = sort_usage_groups(summary["by_model"])
+    return summary
+
+
+def numeric_usage(usage: dict[str, Any]) -> dict[str, int | float]:
+    result: dict[str, int | float] = {}
+    for key, value in usage.items():
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            result[str(key)] = value
+    return result
+
+
+def merge_usage(target: dict[str, Any], usage: dict[str, int | float]) -> None:
+    for key, value in usage.items():
+        target[key] = target.get(key, 0) + value
+
+
+def merge_usage_group(groups: dict[str, Any], key: str, usage: dict[str, int | float]) -> None:
+    group = groups.setdefault(key, {"requests": 0, "usage": {}})
+    group["requests"] += 1
+    merge_usage(group["usage"], usage)
+
+
+def sort_usage_groups(groups: dict[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in sorted(groups.items()):
+        result[key] = {
+            "requests": value["requests"],
+            "usage": dict(sorted(value["usage"].items())),
+        }
+    return result

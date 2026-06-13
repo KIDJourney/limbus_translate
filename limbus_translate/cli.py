@@ -63,6 +63,7 @@ from .terms import (
 )
 from .translation_cache import (
     read_translation_cache,
+    summarize_request_usage,
     write_translation_cache,
     write_translation_request_log,
     write_translation_trace,
@@ -372,6 +373,7 @@ def cmd_workflow_run(args: argparse.Namespace) -> int:
         "translation_requests": {
             "path": str(translation_request_log_path),
             "rows": len(translation_request_log),
+            "usage": summarize_request_usage(translation_request_log),
         },
         "artifacts": {
             "units": str(units_path),
@@ -587,8 +589,11 @@ def cmd_eval_run(args: argparse.Namespace) -> int:
     if args.request_log:
         write_translation_request_log(Path(args.request_log), request_log)
         print(f"eval request log written: {len(request_log)} rows -> {args.request_log}")
-    write_eval_report(Path(args.report), results)
+    usage_summary = summarize_request_usage(request_log)
+    write_eval_report(Path(args.report), results, usage_summary=usage_summary if args.request_log else None)
     summary = summarize_eval(results)
+    if args.request_log:
+        summary["usage"] = usage_summary
     print(f"eval complete: {summary['total']} cases -> {args.report}")
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 1 if summary["pass_rate"] < args.fail_under else 0
@@ -619,8 +624,11 @@ def cmd_eval_compare(args: argparse.Namespace) -> int:
     if args.request_log:
         write_translation_request_log(Path(args.request_log), request_log)
         print(f"eval request log written: {len(request_log)} rows -> {args.request_log}")
-    write_eval_comparison_report(Path(args.report), comparisons)
+    usage_summary = summarize_request_usage(request_log)
+    write_eval_comparison_report(Path(args.report), comparisons, usage_summary=usage_summary if args.request_log else None)
     summary = summarize_eval_comparison(comparisons)
+    if args.request_log:
+        summary["usage"] = usage_summary
     print(f"eval compare complete: {summary['providers']} providers -> {args.report}")
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     best = summary["rankings"][0] if summary["rankings"] else {"pass_rate": 0.0}

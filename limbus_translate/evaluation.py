@@ -465,9 +465,12 @@ def summarize_eval(results: list[EvalResult]) -> dict[str, Any]:
     }
 
 
-def write_eval_report(path: Path, results: list[EvalResult]) -> None:
+def write_eval_report(path: Path, results: list[EvalResult], usage_summary: dict[str, Any] | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"summary": summarize_eval(results), "results": [asdict(result) for result in results]}
+    summary = summarize_eval(results)
+    if usage_summary is not None:
+        summary["usage"] = usage_summary
+    payload = {"summary": summary, "results": [asdict(result) for result in results]}
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -488,10 +491,17 @@ def summarize_eval_comparison(comparisons: list[EvalComparison]) -> dict[str, An
     return {"providers": len(comparisons), "rankings": rankings}
 
 
-def write_eval_comparison_report(path: Path, comparisons: list[EvalComparison]) -> None:
+def write_eval_comparison_report(
+    path: Path,
+    comparisons: list[EvalComparison],
+    usage_summary: dict[str, Any] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    summary = summarize_eval_comparison(comparisons)
+    if usage_summary is not None:
+        summary["usage"] = usage_summary
     payload = {
-        "summary": summarize_eval_comparison(comparisons),
+        "summary": summary,
         "providers": [
             {
                 "provider": comparison.provider,

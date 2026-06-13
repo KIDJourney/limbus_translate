@@ -263,7 +263,7 @@ def value_at(value: Any, key: str, *, fallback: Any = None) -> Any:
 
 
 def is_json_scalar(value: Any) -> bool:
-    return value is None or isinstance(value, str | int | float | bool)
+    return value is None or isinstance(value, (str, int, float, bool))
 
 
 def get_provider(name: str) -> TranslationProvider:

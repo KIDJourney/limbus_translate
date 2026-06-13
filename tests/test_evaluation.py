@@ -21,6 +21,7 @@ from limbus_translate.evaluation import (
 )
 from limbus_translate.glossary import GlossaryTerm
 from limbus_translate.providers import TranslationRequest
+from limbus_translate.translation_cache import summarize_request_usage
 
 
 def make_term(source: str, target: str) -> GlossaryTerm:
@@ -113,11 +114,12 @@ def test_eval_report_roundtrip() -> None:
     results = run_gold_evaluation(cases, GoldProvider())
     with TemporaryDirectory() as tmp:
         path = Path(tmp) / "eval-report.json"
-        write_eval_report(path, results)
+        write_eval_report(path, results, usage_summary={"requests": 2, "total": {"total_tokens": 10}})
         text = path.read_text(encoding="utf-8")
 
     assert '"summary"' in text
     assert '"results"' in text
+    assert '"usage"' in text
 
 
 def test_eval_comparison_ranks_providers() -> None:
@@ -127,7 +129,7 @@ def test_eval_comparison_ranks_providers() -> None:
     summary = summarize_eval_comparison(comparisons)
     with TemporaryDirectory() as tmp:
         path = Path(tmp) / "eval-compare-report.json"
-        write_eval_comparison_report(path, comparisons)
+        write_eval_comparison_report(path, comparisons, usage_summary={"requests": 1, "total": {"total_tokens": 5}})
         text = path.read_text(encoding="utf-8")
 
     assert summary["providers"] == 2
@@ -136,6 +138,7 @@ def test_eval_comparison_ranks_providers() -> None:
     assert summary["rankings"][1]["provider"] == "bad"
     assert '"providers"' in text
     assert '"rankings"' in text
+    assert '"usage"' in text
 
 
 def test_gold_evaluation_reuses_candidate_cache_and_logs_requests() -> None:
@@ -175,6 +178,11 @@ def test_gold_evaluation_reuses_candidate_cache_and_logs_requests() -> None:
     assert request_log[0].response_model == "eval-model"
     assert request_log[0].response_id == "eval-response"
     assert request_log[0].usage["total_tokens"] == 6
+    usage_summary = summarize_request_usage(request_log)
+    assert usage_summary["requests"] == 1
+    assert usage_summary["total"]["total_tokens"] == 6
+    assert usage_summary["by_provider"]["qwen-mt:qwen-mt-plus"]["usage"]["input_tokens"] == 4
+    assert usage_summary["by_model"]["eval-model"]["usage"]["output_tokens"] == 2
     assert "gold_context" in request_log[0].context
     assert second_log == []
 
