@@ -35,7 +35,7 @@ LocalizeLimbusCompany checkout
 | `limbus_translate/scanner.py` | 生成待翻译单元；支持唯一、非 `-1` 的 `dataList[*].id` 稳定对齐，重复/无效 id 回退 JSON path；支持 scan policy、changed-files 文件级增量扫描和 source-baseline JSON path 级源文变化扫描 |
 | `limbus_translate/glossary.py` | Paratranz 术语同步、离线导入、本地缓存、术语匹配和术语库质量审计 |
 | `limbus_translate/lore.py` | 从 Markdown / JSON / JSONL / CSV / TXT 导入世界观资料缓存，构建离线 hashed-vector 索引，并按 anchors、术语、TF-IDF 字符 n-gram 或索引相似度召回 lore 片段 |
-| `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆 |
+| `limbus_translate/memory.py` | 从已翻译文件构建 exact-match 翻译记忆，并用 curated gold set 评估 fuzzy TM 召回覆盖率和目标译文相似度 |
 | `limbus_translate/context.py` | 为翻译 provider 组装结构化上下文包：位置、缺译原因、旧目标译文、风险、术语、同文件邻近文本、同文件 TM、跨文件相似 TM 示例和 lore 片段 |
 | `limbus_translate/evaluation.py` | 从参考译文构建 gold set；导出/导入人工审校 gold；调用 provider，输出相似度、格式一致性、术语命中和 pass rate 报告 |
 | `limbus_translate/state.py` | 维护 `new` / `reviewed` / `locked` 单元状态，翻译时跳过锁定单元 |
@@ -54,7 +54,7 @@ LocalizeLimbusCompany checkout
 1. `scan` 读取 `KR` 与 `LLC_zh-CN`，可选读取 `--scan-policy` 作为文件类型 adapter 配置，也可读取 `--changed-files` 把范围收敛到本次 git diff 涉及的 JSON 文件；如果传入 `--source-baseline`，会按 JSON path 和 `dataList[id=...]` 稳定键只保留源文新增/变化的路径，并把目标已有旧中文的单元标记为 `source_changed`。输出 `TranslationUnit[]`，包含 `source_json_path`、目标 `json_path`、`stable_key`、source hash 和格式 profile。
 2. `glossary sync-paratranz` 缓存 Paratranz 项目 `6860` 的术语；`glossary audit` 检查空源文、空译名、同源多译名冲突、译文韩文残留和重复项。
 3. `lore import` 把世界观笔记导成 `cache/lore/world.json`；`lore index` 进一步构建 `cache/lore/world-index.json`，供翻译时按源文、术语、anchors 和离线向量相似度召回。
-4. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆。
+4. `tm build` 从已翻译 JSON 构建 exact-match 翻译记忆；`tm evaluate` 用 curated gold set 评估 fuzzy TM top-k 召回、覆盖率、源文相似度、目标译文相似度和阈值 sweep。
 5. `translate` 读取待译单元、术语缓存、lore cache、TM 和可选 candidate cache，先查 state / exact TM；未命中时匹配术语并构建结构化 context bundle，按 provider、source hash、context hash 和 glossary hash 查候选缓存；仍未命中才调用 provider，并可把本次发送给 provider 的 source、glossary、context、返回译文、响应模型/id 和 token usage 写入 request log，再按目标 JSON path 写入输出目录；目标缺 `dataList` record 时会 append 源 record 并替换本字段译文。开启 trace 时，每条处理结果都会记录译文来源。
 6. `state init` 或外部审校系统维护 `reviewed` / `locked` 状态，`translate --state` 避免覆盖人工定稿。
 7. `qa` 检查占位符、标签、术语、数字、换行、韩文残留、疑似繁体和长度风险，可通过 `--length-policy` 按路径或 risk 覆盖字符级阈值，并按 `accuracy` / `terminology` / `format` / `locale_convention` / `design` 等 MQM 风格类别汇总。

@@ -29,7 +29,7 @@ from .lore import (
     write_lore_cache,
     write_lore_index,
 )
-from .memory import build_memory, read_memory, write_memory
+from .memory import build_memory, evaluate_memory_retrieval, read_memory, write_memory, write_memory_evaluation_report
 from .providers import get_provider
 from .qa import qa_output, read_length_policy, summarize_issues, write_issues
 from .review import (
@@ -411,6 +411,25 @@ def cmd_tm_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tm_evaluate(args: argparse.Namespace) -> int:
+    cases = read_gold_cases(Path(args.gold))
+    memory = read_memory(Path(args.memory))
+    thresholds = parse_float_list(args.thresholds)
+    report = evaluate_memory_retrieval(
+        cases=cases,
+        memory=memory,
+        top_k=args.top_k,
+        min_similarity=args.min_similarity,
+        thresholds=thresholds,
+        include_exact=args.include_exact,
+    )
+    write_memory_evaluation_report(Path(args.report), report)
+    summary = report["summary"]
+    print(f"tm evaluate complete: {summary['with_match']}/{summary['total']} cases -> {args.report}")
+    print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def cmd_lore_import(args: argparse.Namespace) -> int:
     entries = import_lore(Path(args.input))
     write_lore_cache(Path(args.output), entries)
@@ -716,6 +735,15 @@ def parse_provider_specs(values: list[str]) -> list[tuple[str, str]]:
     return providers
 
 
+def parse_float_list(value: str) -> list[float]:
+    items = []
+    for raw in value.split(","):
+        raw = raw.strip()
+        if raw:
+            items.append(float(raw))
+    return items
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="limbus-translate")
     sub = parser.add_subparsers(required=True)
@@ -802,6 +830,15 @@ def build_parser() -> argparse.ArgumentParser:
     tm_build.add_argument("--target", required=True)
     tm_build.add_argument("--output", default="cache/tm/exact.json")
     tm_build.set_defaults(func=cmd_tm_build)
+    tm_eval = tm_sub.add_parser("evaluate")
+    tm_eval.add_argument("--memory", default="cache/tm/exact.json")
+    tm_eval.add_argument("--gold", required=True)
+    tm_eval.add_argument("--report", default="build/tm-eval-report.json")
+    tm_eval.add_argument("--top-k", type=int, default=3)
+    tm_eval.add_argument("--min-similarity", type=float, default=0.35)
+    tm_eval.add_argument("--thresholds", default="0.35,0.5,0.7")
+    tm_eval.add_argument("--include-exact", action="store_true")
+    tm_eval.set_defaults(func=cmd_tm_evaluate)
 
     lore = sub.add_parser("lore", help="Import worldbuilding notes for translation context.")
     lore_sub = lore.add_subparsers(required=True)

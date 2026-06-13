@@ -164,6 +164,13 @@ python3 -m limbus_translate.cli eval apply-review \
   --review build/gold-review/review.csv \
   --output cache/eval/gold-curated.json
 
+python3 -m limbus_translate.cli tm evaluate \
+  --memory cache/tm/exact.json \
+  --gold cache/eval/gold-curated.json \
+  --report build/tm-eval-report.json \
+  --min-similarity 0.35 \
+  --thresholds 0.35,0.5,0.7
+
 python3 -m limbus_translate.cli eval run \
   --gold cache/eval/gold-curated.json \
   --provider dry-run \
@@ -207,6 +214,8 @@ python3 -m limbus_translate.cli terms promote \
 ```
 
 `refined.json` 中的 `decision` 为 `term` / `not_term` / `needs_review`，并保留 `suggested_target`、`confidence`、`note`、`contexts`、`provider` 等字段。`terms refine --cache` 会读取并更新持久 refined cache；缓存命中时复用旧 decision / suggested target / note，同时刷新本轮 contexts、count 和 sample text。`terms review-pack` 会输出 `review.csv`、`review.jsonl` 和 `paratranz-import.csv`，默认排除 `not_term`；`terms apply-review` 只会导入 `approved` 明确为真且 `target` 非空的审校行；`terms promote` 只会导出 `decision=term` 且有 `suggested_target` 的记录。
+
+`tm evaluate` 用 curated gold set 评估 fuzzy TM 召回，默认排除 exact source，只统计相似记忆；报告会输出 top-k 候选、覆盖率、top1 源文相似度、目标译文相似度和阈值 sweep，用于决定 `ContextBundle.memory_examples` 的相似度阈值。
 
 `eval sample-gold` 可按 `tag` / `risk` / `file` 分层抽样，避免评估集过度偏向单一文本类型；`eval review-pack` 会导出 `review.csv` 和 `review.jsonl` 供人工确认，`eval apply-review` 只把 `approved` 明确为真且能匹配原始 gold case 的行写回 curated gold set，并保留原始 glossary / context / tags。`--provider` 支持 `dry-run`、`openai`、`openai:<model>`、`openai-chat`、`openai-chat:<model>`、`qwen-mt` 和 `qwen-mt:<model>`；`eval compare` 的 provider 可写成 `label=spec`，用于在同一 gold set 上比较多个模型。`eval run` / `eval compare` 支持 `--candidate-cache` 和 `--request-log`，cache key 使用 provider spec 而不是 label，因此同一模型改名比较不会重复调用；request log 同样记录 `target_text`、响应 metadata 和 `usage`，report summary 会按 provider 和 response model 聚合 token 用量。
 

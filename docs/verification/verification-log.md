@@ -6,6 +6,7 @@
 
 | 日期 | 场景 | 变更 | 验证 | 结果 |
 |---|---|---|---|---|
+| 2026-06-14 | TM fuzzy retrieval evaluation | 新增 `tm evaluate`，用 curated gold set 评估 translation memory 的 fuzzy 召回；报告包含每个 case 的 top-k matches、source/target similarity、覆盖率和 threshold sweep，默认排除 exact source | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check` | 通过；直接测试覆盖 exact 排除、相似 TM 命中、阈值统计和报告写盘；fixture smoke 生成并校验 `build/tm-eval-report.json` |
 | 2026-06-14 | Provider usage summary | 新增 `summarize_request_usage`，按总量、provider 和 response model 聚合 request log usage；`workflow run` summary、`eval run` report 和 `eval compare` report 在启用 request log 时写入 usage summary | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check` | 通过；直接测试覆盖 usage 聚合、eval report 写入 usage；fixture smoke 断言 eval report、eval compare report 和 workflow summary 都包含 usage request/model 汇总 |
 | 2026-06-14 | Provider response metadata / usage log | provider 在成功调用后暴露 `last_metadata`；translation 与 eval request log 改为记录 `target_text`、`response_model`、`response_id` 和 `usage`；dry-run 写入零 token usage，OpenAI-compatible / Qwen-MT 从响应对象提取模型、id 与 token 统计 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check` | 通过；直接测试覆盖 provider metadata 提取、translation/eval request log 响应字段；fixture smoke 断言 translation 与 eval request log 含 `target_text` / `usage`，eval dry-run 含 `response_model=dry-run` |
 | 2026-06-14 | Eval candidate cache / request log | `eval run` 与 `eval compare` 新增 `--candidate-cache` 和 `--request-log`；评估 cache key 使用 provider spec、source hash、context hash 和 glossary hash，cache 命中不重复写 request log；同一 compare 内不同 label 指向同一 provider spec 时复用候选 | `make test`；`python3 -m compileall -q limbus_translate`；`make smoke`；`make validate-docs`；`git diff --check` | 通过；直接测试覆盖 eval cache 复用、request log 只记录 provider 调用、label 改名不改变 cache key；fixture smoke 生成 `build/eval-candidates.json`、`build/eval-requests.jsonl`、`build/eval-compare-candidates.json` 和 `build/eval-compare-requests.jsonl` |
@@ -50,5 +51,5 @@
 
 - CI 文档检查。
 - 本地 promoted glossary 尚未自动同步回 Paratranz 或审校系统正式 termbase；当前只生成候选导入 CSV。
-- fuzzy TM 尚未经过真实 gold set 调参。
+- fuzzy TM 现已可用 curated gold 生成评估报告，但默认阈值尚未经过真实人工 curated gold 决策。
 - 外部世界观 embedding 服务或专用向量数据库。
